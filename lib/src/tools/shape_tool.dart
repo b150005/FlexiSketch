@@ -8,7 +8,7 @@ enum ShapeType { rectangle, circle }
 class ShapeTool implements DrawingTool {
   final ShapeType shapeType;
 
-  ShapeTool(this.shapeType);
+  ShapeTool({required this.shapeType});
 
   @override
   void startDrawing(Offset point, FlexiSketchController controller) {

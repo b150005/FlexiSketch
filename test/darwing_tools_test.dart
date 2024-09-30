@@ -52,7 +52,7 @@ void main() {
   });
 
   test('ShapeTool creates a rectangle', () {
-    final shapeTool = ShapeTool(ShapeType.rectangle);
+    final shapeTool = ShapeTool(shapeType: ShapeType.rectangle);
     shapeTool.startDrawing(Offset.zero, controller);
     shapeTool.continueDrawing(const Offset(100, 100), controller);
     shapeTool.endDrawing(controller);
@@ -63,7 +63,7 @@ void main() {
   });
 
   test('ShapeTool creates a circle', () {
-    final shapeTool = ShapeTool(ShapeType.circle);
+    final shapeTool = ShapeTool(shapeType: ShapeType.circle);
     shapeTool.startDrawing(Offset.zero, controller);
     shapeTool.continueDrawing(const Offset(100, 100), controller);
     shapeTool.endDrawing(controller);

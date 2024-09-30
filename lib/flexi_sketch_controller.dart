@@ -2,42 +2,45 @@ import 'package:flutter/material.dart';
 
 import 'src/objects/drawable_object.dart';
 import 'src/tools/drawing_tool.dart';
-import 'src/tools/pen_tool.dart';
 import 'src/tools/shape_tool.dart';
 
 class FlexiSketchController extends ChangeNotifier {
-  DrawingTool _currentTool = PenTool();
-  DrawingTool get currentTool => _currentTool;
+  DrawingTool? _currentTool;
+  DrawingTool? get currentTool => _currentTool;
 
   final List<DrawableObject> _objects = [];
+  List<DrawableObject> get objects => _objects;
   DrawableObject? _currentObject;
 
   Color _currentColor = Colors.black;
+  Color get currentColor => _currentColor;
+
   double _currentStrokeWidth = 2.0;
+  double get currentStrokeWidth => _currentStrokeWidth;
+
   PathObject? _currentPath;
+  PathObject? get currentPath => _currentPath;
+
   ShapeObject? _currentShape;
+  ShapeObject? get currentShape => _currentShape;
 
   double _scale = 1.0;
-
-  List<DrawableObject> get objects => _objects;
-  Color get currentColor => _currentColor;
-  double get currentStrokeWidth => _currentStrokeWidth;
-  PathObject? get currentPath => _currentPath;
-  ShapeObject? get currentShape => _currentShape;
   double get scale => _scale;
 
+  bool get isToolSelected => _currentTool != null;
+
   void startDrawing(Offset point) {
-    _currentTool.startDrawing(point, this);
+    _currentTool?.startDrawing(point, this);
     notifyListeners();
   }
 
   void addPoint(Offset point) {
-    _currentTool.continueDrawing(point, this);
+    _currentTool?.continueDrawing(point, this);
     notifyListeners();
   }
 
   void endDrawing() {
-    _currentTool.endDrawing(this);
+    _currentTool?.endDrawing(this);
     notifyListeners();
   }
 
@@ -56,13 +59,21 @@ class FlexiSketchController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setTool(DrawingTool tool) {
+  void setTool(DrawingTool? tool) {
     _currentTool = tool;
     notifyListeners();
   }
 
-  bool isToolSelected(DrawingTool tool) {
-    if (_currentTool.runtimeType != tool.runtimeType) {
+  void toggleTool(DrawingTool tool) {
+    if (isSpecificToolSelected(tool)) {
+      setTool(null);
+    } else {
+      setTool(tool);
+    }
+  }
+
+  bool isSpecificToolSelected(DrawingTool tool) {
+    if (_currentTool == null || _currentTool.runtimeType != tool.runtimeType) {
       return false;
     }
     if (_currentTool is ShapeTool && tool is ShapeTool) {
@@ -73,8 +84,8 @@ class FlexiSketchController extends ChangeNotifier {
 
   void startPath(Offset point, {BlendMode blendMode = BlendMode.srcOver}) {
     final path = Path()..moveTo(point.dx, point.dy);
-    final paint = _currentTool.createPaint(_currentColor, _currentStrokeWidth);
-    _currentPath = PathObject(path: path, paint: paint);
+    final paint = _currentTool?.createPaint(_currentColor, _currentStrokeWidth);
+    _currentPath = PathObject(path: path, paint: paint ?? Paint());
     _currentObject = _currentPath;
   }
 

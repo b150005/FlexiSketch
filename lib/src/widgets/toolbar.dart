@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../flexi_sketch_controller.dart';
 import '../tools/drawing_tool.dart';
 import '../tools/eraser_tool.dart';
-import '../tools/marker_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/shape_tool.dart';
 
@@ -49,44 +47,42 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return SlideTransition(
-      position: Tween<Offset>(
-        begin: const Offset(0, -1),
-        end: Offset.zero,
-      ).animate(_animation),
-      child: Container(
-        height: 56,
-        color: Colors.grey[200],
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildToolButton(Icons.edit, PenTool()),
-            _buildToolButton(Icons.brush, MarkerTool()),
-            _buildToolButton(Icons.crop_square, ShapeTool(ShapeType.rectangle)),
-            _buildToolButton(Icons.circle_outlined, ShapeTool(ShapeType.circle)),
-            _buildToolButton(Icons.delete, EraserTool()),
-          ],
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildToolButton(PenTool()),
+        _buildToolButton(EraserTool()),
+        _buildToolButton(ShapeTool(shapeType: ShapeType.rectangle)),
+        _buildToolButton(ShapeTool(shapeType: ShapeType.circle)),
+        ElevatedButton(
+          onPressed: widget.controller.clear,
+          child: const Icon(Icons.clear),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildToolButton(IconData icon, DrawingTool tool) {
-    final isSelected = widget.controller.isToolSelected(tool);
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      decoration: BoxDecoration(
-        color: isSelected ? Colors.blue.withOpacity(0.2) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: IconButton(
-        icon: Icon(icon),
-        onPressed: () {
-          widget.controller.setTool(tool);
-          HapticFeedback.selectionClick();
-        },
-        color: isSelected ? Colors.blue : Colors.black,
-      ),
-    );
+  Widget _buildToolButton(DrawingTool tool) {
+  return ElevatedButton(
+    onPressed: () => widget.controller.toggleTool(tool),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: widget.controller.isSpecificToolSelected(tool) ? Colors.blue : null,
+    ),
+    child: Icon(_getIconForTool(tool)),
+  );
+}
+
+  IconData _getIconForTool(DrawingTool tool) {
+    if (tool is PenTool) return Icons.edit;
+    if (tool is EraserTool) return Icons.auto_fix_high;
+    if (tool is ShapeTool) {
+      switch (tool.shapeType) {
+        case ShapeType.rectangle:
+          return Icons.crop_square;
+        case ShapeType.circle:
+          return Icons.circle_outlined;
+      }
+    }
+    return Icons.error;
   }
 }

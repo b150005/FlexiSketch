@@ -13,7 +13,8 @@ class InfiniteCanvas extends StatefulWidget {
 
 class _InfiniteCanvasState extends State<InfiniteCanvas> {
   late TransformationController _transformationController;
-  bool _isDrawing = false;
+  Offset _lastFocalPoint = Offset.zero;
+  double _lastScale = 1.0;
 
   @override
   void initState() {
@@ -29,53 +30,66 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
   }
 
   void _onControllerChanged() {
-    setState(() {
-      _transformationController.value = Matrix4.identity()..scale(widget.controller.scale);
-    });
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: _handlePointerDown,
-      onPointerMove: _handlePointerMove,
-      onPointerUp: _handlePointerUp,
-      child: InteractiveViewer(
-        transformationController: _transformationController,
-        boundaryMargin: const EdgeInsets.all(double.infinity),
-        minScale: 0.1,
-        maxScale: 10.0,
-        panEnabled: !_isDrawing,
-        scaleEnabled: !_isDrawing,
+    return GestureDetector(
+      onScaleStart: _handleScaleStart,
+      onScaleUpdate: _handleScaleUpdate,
+      onScaleEnd: _handleScaleEnd,
+      child: ClipRect(
         child: CustomPaint(
-          painter: CanvasPainter(controller: widget.controller),
-          size: Size.infinite,
+          painter: CanvasPainter(
+            controller: widget.controller,
+            transform: _transformationController.value,
+          ),
+          child: Transform(
+            transform: _transformationController.value,
+            child: const SizedBox.expand(),
+          ),
         ),
       ),
     );
   }
 
-  void _handlePointerDown(PointerDownEvent event) {
-    final localPosition = _transformationController.toScene(event.localPosition);
-    setState(() {
-      _isDrawing = true;
-    });
-    widget.controller.startDrawing(localPosition);
-  }
-
-  void _handlePointerMove(PointerMoveEvent event) {
-    if (_isDrawing) {
-      final localPosition = _transformationController.toScene(event.localPosition);
-      widget.controller.addPoint(localPosition);
+  void _handleScaleStart(ScaleStartDetails details) {
+    _lastFocalPoint = details.localFocalPoint;
+    _lastScale = 1.0;
+    if (widget.controller.isToolSelected && details.pointerCount == 1) {
+      final localPosition = _transformationController.toScene(details.localFocalPoint);
+      widget.controller.startDrawing(localPosition);
     }
   }
 
-  void _handlePointerUp(PointerUpEvent event) {
-    if (_isDrawing) {
+  void _handleScaleUpdate(ScaleUpdateDetails details) {
+    if (widget.controller.isToolSelected && details.pointerCount == 1) {
+      final localPosition = _transformationController.toScene(details.localFocalPoint);
+      widget.controller.addPoint(localPosition);
+    } else {
+      final scaleDiff = details.scale - _lastScale;
+      _lastScale = details.scale;
+
+      final scaleMatrix = Matrix4.identity()
+        ..translate(details.localFocalPoint.dx, details.localFocalPoint.dy)
+        ..scale(1.0 + scaleDiff)
+        ..translate(-details.localFocalPoint.dx, -details.localFocalPoint.dy);
+
+      final panDelta = details.localFocalPoint - _lastFocalPoint;
+      final panMatrix = Matrix4.identity()
+        ..translate(panDelta.dx, panDelta.dy);
+
+      _transformationController.value = panMatrix * scaleMatrix * _transformationController.value;
+      _lastFocalPoint = details.localFocalPoint;
+    }
+
+    setState(() {});
+  }
+
+  void _handleScaleEnd(ScaleEndDetails details) {
+    if (widget.controller.isToolSelected) {
       widget.controller.endDrawing();
-      setState(() {
-        _isDrawing = false;
-      });
     }
   }
 }

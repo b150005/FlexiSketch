@@ -9,7 +9,7 @@ import 'package:flexi_sketch/src/tools/shape_tool.dart';
 void main() {
   testWidgets('InfiniteCanvas can draw shapes', (WidgetTester tester) async {
     final controller = FlexiSketchController();
-    controller.setTool(ShapeTool(ShapeType.rectangle));
+    controller.setTool(ShapeTool(shapeType: ShapeType.rectangle));
 
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(body: InfiniteCanvas(controller: controller)),
@@ -32,7 +32,7 @@ void main() {
 
   testWidgets('InfiniteCanvas updates shape preview during drag', (WidgetTester tester) async {
     final controller = FlexiSketchController();
-    controller.setTool(ShapeTool(ShapeType.circle));
+    controller.setTool(ShapeTool(shapeType: ShapeType.circle));
 
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(body: InfiniteCanvas(controller: controller)),
