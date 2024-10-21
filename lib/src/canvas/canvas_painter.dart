@@ -14,6 +14,7 @@ class CanvasPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
+    canvas.scale(controller.scale);
     canvas.transform(transform.storage);
 
     // Calculate visible area

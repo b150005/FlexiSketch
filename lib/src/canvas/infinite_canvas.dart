@@ -39,16 +39,14 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
       onScaleStart: _handleScaleStart,
       onScaleUpdate: _handleScaleUpdate,
       onScaleEnd: _handleScaleEnd,
-      child: ClipRect(
-        child: CustomPaint(
-          painter: CanvasPainter(
-            controller: widget.controller,
-            transform: _transformationController.value,
-          ),
-          child: Transform(
-            transform: _transformationController.value,
-            child: const SizedBox.expand(),
-          ),
+      child: CustomPaint(
+        painter: CanvasPainter(
+          controller: widget.controller,
+          transform: _transformationController.value,
+        ),
+        child: Transform(
+          transform: _transformationController.value,
+          child: const SizedBox.expand(),
         ),
       ),
     );
