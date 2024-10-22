@@ -18,7 +18,6 @@ class FlexiSketchWidget extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            Toolbar(controller: controller),
             Expanded(
               child: Stack(
                 children: [
@@ -39,6 +38,10 @@ class FlexiSketchWidget extends StatelessWidget {
                     bottom: 16,
                     child: ZoomControls(controller: controller),
                   ),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Toolbar(controller: controller),
+                  )
                 ],
               ),
             ),
