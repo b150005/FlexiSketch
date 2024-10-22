@@ -5,7 +5,6 @@ import '../canvas/infinite_canvas.dart';
 import 'color_palette.dart';
 import 'stroke_width_slider.dart';
 import 'toolbar.dart';
-import 'zoom_controls.dart';
 
 class FlexiSketchWidget extends StatelessWidget {
   final FlexiSketchController controller;
@@ -29,11 +28,6 @@ class FlexiSketchWidget extends StatelessWidget {
                   StrokeWidthSlider(controller: controller),
                 ],
               ),
-            ),
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: ZoomControls(controller: controller),
             ),
             Align(
               alignment: Alignment.bottomCenter,
