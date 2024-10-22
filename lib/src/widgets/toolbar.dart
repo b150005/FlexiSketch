@@ -17,7 +17,6 @@ class Toolbar extends StatefulWidget {
 
 class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _animation;
 
   @override
   void initState() {
@@ -25,10 +24,6 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     _controller = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
-    );
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
     );
     _controller.forward();
     widget.controller.addListener(_onControllerChanged);
@@ -63,14 +58,14 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildToolButton(DrawingTool tool) {
-  return ElevatedButton(
-    onPressed: () => widget.controller.toggleTool(tool),
-    style: ElevatedButton.styleFrom(
-      backgroundColor: widget.controller.isSpecificToolSelected(tool) ? Colors.blue : null,
-    ),
-    child: Icon(_getIconForTool(tool)),
-  );
-}
+    return ElevatedButton(
+      onPressed: () => widget.controller.toggleTool(tool),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: widget.controller.isSpecificToolSelected(tool) ? Colors.blue : null,
+      ),
+      child: Icon(_getIconForTool(tool)),
+    );
+  }
 
   IconData _getIconForTool(DrawingTool tool) {
     if (tool is PenTool) return Icons.edit;

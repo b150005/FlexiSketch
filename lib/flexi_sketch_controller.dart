@@ -10,7 +10,6 @@ class FlexiSketchController extends ChangeNotifier {
 
   final List<DrawableObject> _objects = [];
   List<DrawableObject> get objects => _objects;
-  DrawableObject? _currentObject;
 
   Color _currentColor = Colors.black;
   Color get currentColor => _currentColor;
@@ -86,7 +85,6 @@ class FlexiSketchController extends ChangeNotifier {
     final path = Path()..moveTo(point.dx, point.dy);
     final paint = _currentTool?.createPaint(_currentColor, _currentStrokeWidth);
     _currentPath = PathObject(path: path, paint: paint ?? Paint());
-    _currentObject = _currentPath;
   }
 
   void addPointToPath(Offset point) {
@@ -97,7 +95,6 @@ class FlexiSketchController extends ChangeNotifier {
   void endPath() {
     if (_currentPath != null) {
       _objects.add(_currentPath!);
-      _currentObject = null;
       _currentPath = null;
       notifyListeners();
     }
