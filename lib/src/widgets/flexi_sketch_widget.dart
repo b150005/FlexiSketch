@@ -15,33 +15,35 @@ class FlexiSketchWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          Toolbar(controller: controller),
-          Expanded(
-            child: Stack(
-              children: [
-                InfiniteCanvas(controller: controller),
-                Positioned(
-                  left: 16,
-                  top: 16,
-                  child: Column(
-                    children: [
-                      ColorPalette(controller: controller),
-                      const SizedBox(height: 16),
-                      StrokeWidthSlider(controller: controller),
-                    ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            Toolbar(controller: controller),
+            Expanded(
+              child: Stack(
+                children: [
+                  InfiniteCanvas(controller: controller),
+                  Positioned(
+                    left: 16,
+                    top: 16,
+                    child: Column(
+                      children: [
+                        ColorPalette(controller: controller),
+                        const SizedBox(height: 16),
+                        StrokeWidthSlider(controller: controller),
+                      ],
+                    ),
                   ),
-                ),
-                Positioned(
-                  right: 16,
-                  bottom: 16,
-                  child: ZoomControls(controller: controller),
-                ),
-              ],
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: ZoomControls(controller: controller),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
