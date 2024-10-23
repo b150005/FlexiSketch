@@ -67,38 +67,65 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
     setState(() {});
   }
 
+  /// スケール操作が開始されたときに呼ばれるコールバック
+  ///
+  /// [details]には、スケール操作の開始時の詳細情報が含まれています。
+  /// ツールが選択されている場合、描画を開始します。
   void _handleScaleStart(ScaleStartDetails details) {
+    // 現在の焦点位置を保存
     _lastFocalPoint = details.localFocalPoint;
+    // スケールの初期値を設定
     _lastScale = 1.0;
+
     if (widget.controller.isToolSelected && details.pointerCount == 1) {
+      // 焦点位置をシーン座標に変換
       final localPosition = _transformationController.toScene(details.localFocalPoint);
+      // 描画を開始
       widget.controller.startDrawing(localPosition);
     }
   }
 
+  /// スケール操作が更新されたときに呼ばれるコールバック
+  ///
+  /// [details]には、スケール操作の更新時の詳細情報が含まれています。
+  /// ツールが選択されている場合、描画ポイントを追加します。
+  /// ツールが選択されていない場合、ズームやパンの操作を処理します。
   void _handleScaleUpdate(ScaleUpdateDetails details) {
+    // ツールが選択されていて、ポインタが1つの場合
     if (widget.controller.isToolSelected && details.pointerCount == 1) {
+      // 焦点位置をシーン座標に変換
       final localPosition = _transformationController.toScene(details.localFocalPoint);
+      // 描画ポイントを追加
       widget.controller.addPoint(localPosition);
     } else {
+      // スケールの変化量を計算
       final scaleDiff = details.scale - _lastScale;
+      // 現在のスケールを更新
       _lastScale = details.scale;
 
+      // ズームのための変換行列を作成
       final scaleMatrix = Matrix4.identity()
         ..translate(details.localFocalPoint.dx, details.localFocalPoint.dy)
         ..scale(1.0 + scaleDiff)
         ..translate(-details.localFocalPoint.dx, -details.localFocalPoint.dy);
 
+      // パンのための変換行列を作成
       final panDelta = details.localFocalPoint - _lastFocalPoint;
       final panMatrix = Matrix4.identity()..translate(panDelta.dx, panDelta.dy);
 
+      // 変換行列を更新
       _transformationController.value = panMatrix * scaleMatrix * _transformationController.value;
+      // 焦点位置を更新
       _lastFocalPoint = details.localFocalPoint;
     }
 
+    // UIを更新
     setState(() {});
   }
 
+  /// スケール操作が終了したときに呼ばれるコールバック
+  ///
+  /// ツールが選択されている場合、描画を終了します。
   void _handleScaleEnd(ScaleEndDetails details) {
     if (widget.controller.isToolSelected) {
       widget.controller.endDrawing();
