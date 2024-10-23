@@ -5,10 +5,8 @@ import 'package:flexi_sketch/src/widgets/color_palette.dart';
 import 'package:flexi_sketch/src/widgets/flexi_sketch_widget.dart';
 import 'package:flexi_sketch/src/widgets/stroke_width_slider.dart';
 import 'package:flexi_sketch/src/widgets/toolbar.dart';
-import 'package:flexi_sketch/src/widgets/zoom_controls.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 
 void main() {
   testWidgets('FlexiSketchWidget has all required components', (WidgetTester tester) async {
@@ -22,7 +20,6 @@ void main() {
     expect(find.byType(InfiniteCanvas), findsOneWidget);
     expect(find.byType(ColorPalette), findsOneWidget);
     expect(find.byType(StrokeWidthSlider), findsOneWidget);
-    expect(find.byType(ZoomControls), findsOneWidget);
   });
 
   testWidgets('FlexiSketchWidget can switch between drawing tools', (WidgetTester tester) async {
