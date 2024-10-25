@@ -100,7 +100,7 @@ class FlexiSketchController extends ChangeNotifier {
   void startErasing(Offset point) {
     final path = Path()..moveTo(point.dx, point.dy);
     final paint = Paint()
-      ..color = Colors.transparent
+      ..color = Colors.red.withOpacity(0.3)
       ..strokeWidth = _currentStrokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
