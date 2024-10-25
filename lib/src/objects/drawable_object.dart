@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
+import 'dart:developer' as developer;
 
 import '../tools/shape_tool.dart';
 
@@ -20,9 +21,37 @@ class PathObject extends DrawableObject {
 
   @override
   bool intersects(Path other) {
-    // パスの交差判定の実装
-    // この実装は単純化されており、完全な判定には更に複雑なロジックが必要です
-    return path.getBounds().overlaps(other.getBounds());
+    // バウンディングボックスで大まかな判定を最初に行う（パフォーマンス最適化）
+    if (!path.getBounds().overlaps(other.getBounds())) {
+      return false;
+    }
+
+    // パスの交差判定
+    try {
+      // 2つのパスを組み合わせて交差部分を取得
+      Path intersectionPath = Path.combine(
+        PathOperation.intersect,
+        path,
+        other,
+      );
+
+      // パスメトリクスを計算
+      PathMetrics metrics = intersectionPath.computeMetrics();
+
+      // 交差部分の長さや面積をチェック
+      double totalLength = 0;
+      for (PathMetric metric in metrics) {
+        totalLength += metric.length;
+      }
+
+      // 閾値（必要に応じて調整）
+      const double minimumIntersectionLength = 1.0;
+      return totalLength > minimumIntersectionLength;
+    } catch (e) {
+      // パスの操作中にエラーが発生した場合はフォールバック
+      developer.log('Path intersection calculation error: $e');
+      return false;
+    }
   }
 }
 
