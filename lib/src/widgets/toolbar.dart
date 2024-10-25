@@ -36,10 +36,6 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-  void _onControllerChanged() {
-    setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -50,11 +46,19 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         _buildToolButton(ShapeTool(shapeType: ShapeType.rectangle)),
         _buildToolButton(ShapeTool(shapeType: ShapeType.circle)),
         ElevatedButton(
+            onPressed: widget.controller.canUndo ? widget.controller.undo : null, child: const Icon(Icons.undo)),
+        ElevatedButton(
+            onPressed: widget.controller.canRedo ? widget.controller.redo : null, child: const Icon(Icons.redo)),
+        ElevatedButton(
           onPressed: widget.controller.clear,
           child: const Icon(Icons.clear),
         ),
       ],
     );
+  }
+
+  void _onControllerChanged() {
+    setState(() {});
   }
 
   Widget _buildToolButton(DrawingTool tool) {

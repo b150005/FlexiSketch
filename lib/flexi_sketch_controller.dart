@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'src/history/history_entry.dart';
 import 'src/objects/drawable_object.dart';
 import 'src/tools/drawing_tool.dart';
 import 'src/tools/shape_tool.dart';
@@ -24,6 +25,12 @@ class FlexiSketchController extends ChangeNotifier {
   ShapeObject? get currentShape => _currentShape;
 
   bool get isToolSelected => _currentTool != null;
+
+  final List<HistoryEntry> _undoStack = [];
+  bool get canUndo => _undoStack.isNotEmpty;
+
+  final List<HistoryEntry> _redoStack = [];
+  bool get canRedo => _redoStack.isNotEmpty;
 
   void startDrawing(Offset point) {
     _currentTool?.startDrawing(point, this);
@@ -50,9 +57,49 @@ class FlexiSketchController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void clear() {
+  void undo() {
+    if (!canUndo) return;
+
+    final entry = _undoStack.removeLast();
+    _redoStack.add(HistoryEntry(
+      objects: List.from(_objects),
+      type: entry.type,
+    ));
+
     _objects.clear();
+    _objects.addAll(List.from(entry.objects));
     notifyListeners();
+  }
+
+  void redo() {
+    if (!canRedo) return;
+
+    final entry = _redoStack.removeLast();
+    _undoStack.add(HistoryEntry(
+      objects: List.from(_objects),
+      type: entry.type,
+    ));
+
+    _objects.clear();
+    _objects.addAll(List.from(entry.objects));
+    notifyListeners();
+  }
+
+  void _addToHistory(HistoryEntryType type) {
+    _undoStack.add(HistoryEntry(
+      objects: List.from(_objects),
+      type: type,
+    ));
+    _redoStack.clear();
+    notifyListeners();
+  }
+
+  void clear() {
+    if (_objects.isNotEmpty) {
+      _addToHistory(HistoryEntryType.clear);
+      _objects.clear();
+      notifyListeners();
+    }
   }
 
   void setTool(DrawingTool? tool) {
@@ -91,6 +138,7 @@ class FlexiSketchController extends ChangeNotifier {
 
   void endPath() {
     if (_currentPath != null) {
+      _addToHistory(HistoryEntryType.draw);
       _objects.add(_currentPath!);
       _currentPath = null;
       notifyListeners();
@@ -112,7 +160,10 @@ class FlexiSketchController extends ChangeNotifier {
   void continueErasing(Offset point) {
     if (_currentPath != null) {
       _currentPath!.path.lineTo(point.dx, point.dy);
-      _objects.removeWhere((obj) => obj.intersects(_currentPath!.path));
+      if (_objects.any((obj) => obj.intersects(_currentPath!.path))) {
+        _addToHistory(HistoryEntryType.erase);
+        _objects.removeWhere((obj) => obj.intersects(_currentPath!.path));
+      }
       notifyListeners();
     }
   }
@@ -145,6 +196,7 @@ class FlexiSketchController extends ChangeNotifier {
 
   void endShape() {
     if (_currentShape != null) {
+      _addToHistory(HistoryEntryType.draw);
       _objects.add(_currentShape!);
       _currentShape = null;
       notifyListeners();
