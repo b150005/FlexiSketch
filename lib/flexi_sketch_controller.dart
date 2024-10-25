@@ -23,9 +23,6 @@ class FlexiSketchController extends ChangeNotifier {
   ShapeObject? _currentShape;
   ShapeObject? get currentShape => _currentShape;
 
-  double _scale = 1.0;
-  double get scale => _scale;
-
   bool get isToolSelected => _currentTool != null;
 
   void startDrawing(Offset point) {
@@ -152,15 +149,5 @@ class FlexiSketchController extends ChangeNotifier {
       _currentShape = null;
       notifyListeners();
     }
-  }
-
-  void zoomIn() {
-    _scale *= 1.2;
-    notifyListeners();
-  }
-
-  void zoomOut() {
-    _scale /= 1.2;
-    notifyListeners();
   }
 }

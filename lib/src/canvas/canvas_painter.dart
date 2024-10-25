@@ -21,8 +21,6 @@ class CanvasPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // 現在のキャンバスの状態を保存
     canvas.save();
-    // スケールを適用
-    canvas.scale(controller.scale);
     // 変換行列を適用
     canvas.transform(transform.storage);
 
