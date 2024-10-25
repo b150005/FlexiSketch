@@ -6,8 +6,7 @@ import '../objects/drawable_object.dart';
 
 /// CanvasPainterクラスは、キャンバス上に描画を行うためのカスタムペインターです。
 ///
-/// このクラスは、FlexiSketchControllerを使用して描画するオブジェクトを管理し、
-/// 変換行列を適用して描画を行います。
+/// このクラスは、FlexiSketchControllerを使用して描画するオブジェクトを管理し、変換行列を適用して描画を行います。
 class CanvasPainter extends CustomPainter {
   /// 描画を管理するコントローラー
   final FlexiSketchController controller;
@@ -47,7 +46,8 @@ class CanvasPainter extends CustomPainter {
       controller.currentShape!.draw(canvas);
     }
 
-    canvas.restore(); // 保存した状態を復元
+    // 保存した状態を復元
+    canvas.restore();
   }
 
   /// 可視領域を計算する
@@ -106,8 +106,8 @@ class CanvasPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CanvasPainter oldDelegate) {
     // 再描画が必要かどうかを判断する
-    return oldDelegate.controller != controller || // コントローラーが異なる場合
+    return (oldDelegate.controller != controller || // コントローラーが異なる場合
         oldDelegate.transform != transform || // 変換行列が異なる場合
-        oldDelegate.controller.objects.length != controller.objects.length; // オブジェクトの数が異なる場合
+        oldDelegate.controller.objects.length != controller.objects.length); // オブジェクトの数が異なる場合
   }
 }

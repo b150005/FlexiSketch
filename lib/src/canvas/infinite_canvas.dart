@@ -68,9 +68,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
   }
 
   /// スケール操作が開始されたときに呼ばれるコールバック
-  ///
-  /// [details]には、スケール操作の開始時の詳細情報が含まれています。
-  /// ツールが選択されている場合、描画を開始します。
   void _handleScaleStart(ScaleStartDetails details) {
     // 現在の焦点位置を保存
     _lastFocalPoint = details.localFocalPoint;
@@ -86,10 +83,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
   }
 
   /// スケール操作が更新されたときに呼ばれるコールバック
-  ///
-  /// [details]には、スケール操作の更新時の詳細情報が含まれています。
-  /// ツールが選択されている場合、描画ポイントを追加します。
-  /// ツールが選択されていない場合、ズームやパンの操作を処理します。
   void _handleScaleUpdate(ScaleUpdateDetails details) {
     // ツールが選択されていて、ポインタが1つの場合
     if (widget.controller.isToolSelected && details.pointerCount == 1) {
@@ -124,8 +117,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
   }
 
   /// スケール操作が終了したときに呼ばれるコールバック
-  ///
-  /// ツールが選択されている場合、描画を終了します。
   void _handleScaleEnd(ScaleEndDetails details) {
     if (widget.controller.isToolSelected) {
       widget.controller.endDrawing();
