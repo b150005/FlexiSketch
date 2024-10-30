@@ -5,6 +5,8 @@ enum HistoryEntryType {
   draw,
   erase,
   clear,
+  paste,
+  delete,
 }
 
 class HistoryEntry {

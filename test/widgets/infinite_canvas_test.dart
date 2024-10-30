@@ -1,9 +1,9 @@
+import 'package:flexi_sketch/src/objects/shape_object.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flexi_sketch/flexi_sketch.dart';
 import 'package:flexi_sketch/src/canvas/infinite_canvas.dart';
-import 'package:flexi_sketch/src/objects/drawable_object.dart';
 import 'package:flexi_sketch/src/tools/shape_tool.dart';
 
 void main() {

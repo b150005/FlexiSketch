@@ -1,5 +1,6 @@
 import 'package:flexi_sketch/flexi_sketch_controller.dart';
-import 'package:flexi_sketch/src/objects/drawable_object.dart';
+import 'package:flexi_sketch/src/objects/path_object.dart';
+import 'package:flexi_sketch/src/objects/shape_object.dart';
 import 'package:flexi_sketch/src/tools/eraser_tool.dart';
 import 'package:flexi_sketch/src/tools/marker_tool.dart';
 import 'package:flexi_sketch/src/tools/pen_tool.dart';
