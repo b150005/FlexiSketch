@@ -25,10 +25,14 @@ abstract class DrawableObject {
     this.scale = 1.0,
   });
 
-  /// オブジェクトのローカル座標系でのバウンディングボックス
+  /// オブジェクト自身のローカル座標系でのバウンディングボックスを取得する
+  ///
+  /// 位置(position)、回転(rotation)、スケール(scale)などの変換が適用される前の、オブジェクトの元々のサイズと形状を定義します。
   Rect get localBounds;
 
   /// 現在の変換を適用したバウンディングボックス(オブジェクトの矩形)を取得する
+  ///
+  /// 全ての変換(移動、回転、スケール)が適用された後の、キャンバス座標系での実際の矩形領域を表します。
   Rect get bounds {
     final rect = localBounds;
     final matrix = Matrix4.identity()
@@ -57,7 +61,6 @@ abstract class DrawableObject {
 
     // オブジェクトの変換を適用
     final center = localBounds.center;
-    developer.log('Applying transform: position=$position, rotation=$rotation, scale=$scale, center=$center'); // DEBUG:
     canvas
       ..translate(position.dx, position.dy) // 位置の移動
       ..translate(center.dx, center.dy) //中心点に移動
