@@ -1,7 +1,6 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+
 import '../../flexi_sketch_controller.dart';
 import 'canvas_painter.dart';
 

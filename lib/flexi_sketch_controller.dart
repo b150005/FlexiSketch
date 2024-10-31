@@ -1,5 +1,4 @@
 import 'dart:ui' as ui;
-import 'dart:developer' as developer;
 
 import 'package:flexi_sketch/src/services/clipboard_service.dart';
 import 'package:flutter/material.dart';
