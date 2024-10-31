@@ -127,14 +127,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
     }
   }
 
-  /// 指定された点が特定のハンドル上にあるかどうか
-  ///
-  /// [point] 判定対象の点の座標
-  /// [handlePosition] ハンドルの中心座標
-  bool _isOverHandle(Offset point, Offset handlePosition) {
-    return (point - handlePosition).distance <= _handleHitArea;
-  }
-
   /// 指定された点に存在するハンドルの種類を取得する
   ///
   /// [point] 判定対象の点の座標
