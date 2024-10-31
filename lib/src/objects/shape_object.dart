@@ -39,15 +39,9 @@ class ShapeObject extends DrawableObject {
 
     switch (shapeType) {
       case ShapeType.rectangle:
-        // canvas.drawRect(bounds, paint);
         canvas.drawRect(Rect.fromPoints(relativeStartPoint, relativeEndPoint), paint);
         break;
       case ShapeType.circle:
-        // final center = Offset(
-        //   (startPoint.dx + endPoint.dx) / 2,
-        //   (startPoint.dy + endPoint.dy) / 2,
-        // );
-        // final radius = (endPoint - startPoint).distance / 2;
         final center = Offset(
             (relativeStartPoint.dx + relativeEndPoint.dx) / 2, (relativeStartPoint.dy + relativeEndPoint.dy) / 2);
         final radius = (relativeEndPoint - relativeStartPoint).distance / 2;

@@ -161,7 +161,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
     for (final entry in handlePositions.entries) {
       // オブジェクトのローカル座標をスクリーン座標に変換
       final handlePos = _transformLocalPointToScreen(entry.value);
-      // final handlePos = MatrixUtils.transformPoint(transform, entry.value);
       final distance = (point - handlePos).distance;
 
       developer.log('Handle ${entry.key}: pos=$handlePos, distance=$distance'); // DEBUG:
@@ -170,9 +169,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
         developer.log('Handle found: ${entry.key}'); // DEBUG:
         return entry.key;
       }
-      // if (_isOverHandle(point, handlePos)) {
-      //   return entry.key;
-      // }
     }
 
     return null;
@@ -329,8 +325,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
       case _HandleType.bottomLeft:
       case _HandleType.bottomRight:
         // リサイズ処理
-        // final initialDistance = (_lastFocalPoint - center).distance;
-        // final currentDistance = (details.localFocalPoint - center).distance;
         final initialDistance = (_lastFocalPoint - _transformLocalPointToScreen(center)).distance;
         final currentDistance = (details.localFocalPoint - _transformLocalPointToScreen(center)).distance;
         final scale = currentDistance / initialDistance;
@@ -347,7 +341,7 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
         final currentAngle = (details.localFocalPoint - screenCenter).direction;
         final rotation = currentAngle - lastAngle;
 
-        developer.log('Rotate - Angle: $rotation');
+        developer.log('Rotate - Angle: $rotation'); // DEBUG:
 
         widget.controller.rotateSelectedObject(rotation);
         break;

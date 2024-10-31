@@ -57,7 +57,7 @@ abstract class DrawableObject {
 
     // オブジェクトの変換を適用
     final center = localBounds.center;
-    developer.log('Applying transform: position=$position, rotation=$rotation, scale=$scale, center=$center');
+    developer.log('Applying transform: position=$position, rotation=$rotation, scale=$scale, center=$center'); // DEBUG:
     canvas
       ..translate(position.dx, position.dy) // 位置の移動
       ..translate(center.dx, center.dy) //中心点に移動
@@ -72,7 +72,6 @@ abstract class DrawableObject {
 
     // 選択 UI の描画(変換を適用せず描画)
     if (isSelected) {
-      developer.log('選択UI描画します！');
       _drawSelectionUI(canvas);
     }
   }
@@ -130,7 +129,6 @@ abstract class DrawableObject {
     canvas
       ..drawCircle(rotationHandle, 6.0, handlePaint)
       ..drawCircle(rotationHandle, 6.0, handleBorderPaint)
-      // ..drawLine(Offset(rect.center.dx, rect.top), rotationHandle, handleBorderPaint);
       ..drawLine(rect.topCenter, rotationHandle, handleBorderPaint);
 
     final deleteHandle = Offset(rect.center.dx, rect.bottom + 20);
@@ -141,7 +139,6 @@ abstract class DrawableObject {
     // 下部の削除ハンドル
     canvas
       ..drawCircle(deleteHandle, 6.0, deleteHandlePaint)
-      // ..drawLine(Offset(rect.center.dx, rect.bottom), deleteHandle, handleBorderPaint);
       ..drawLine(rect.bottomCenter, deleteHandle, handleBorderPaint);
   }
 

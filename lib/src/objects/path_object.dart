@@ -34,11 +34,6 @@ class PathObject extends DrawableObject {
 
   @override
   bool intersects(Path other) {
-    // バウンディングボックスで大まかな判定を最初に行う（パフォーマンス最適化）
-    // if (!path.getBounds().overlaps(other.getBounds())) {
-    //   return false;
-    // }
-
     // 現在の変換を適用したパスを取得
     final center = localBounds.center;
     final matrix = Matrix4.identity()
@@ -78,7 +73,7 @@ class PathObject extends DrawableObject {
       return totalLength > minimumIntersectionLength;
     } catch (e) {
       // パスの操作中にエラーが発生した場合はフォールバック
-      developer.log('Path intersection calculation error: $e');
+      developer.log('Path intersection calculation error: $e'); // DEBUG:
       return false;
     }
   }
