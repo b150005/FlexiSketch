@@ -335,7 +335,6 @@ class FlexiSketchController extends ChangeNotifier {
   /// 選択中のオブジェクトを移動する
   void moveSelectedObject(Offset delta) {
     if (_selectedObject != null) {
-      developer.log('Moving object by delta: $delta'); // DEBUG:
       _selectedObject!.translate(delta);
       notifyListeners();
     }
@@ -346,7 +345,6 @@ class FlexiSketchController extends ChangeNotifier {
   /// [angle] 回転角度[rad]
   void rotateSelectedObject(double angle) {
     if (_selectedObject != null) {
-      developer.log('Rotating object by angle: $angle'); // DEBUG:
       _selectedObject!.rotate(angle);
       notifyListeners();
     }
@@ -357,7 +355,6 @@ class FlexiSketchController extends ChangeNotifier {
   /// [scale] スケール値の変更量
   void resizeSelectedObject(double scale) {
     if (_selectedObject != null) {
-      developer.log('Resizing object by scale: $scale'); // DEBUG:
       _selectedObject!.resize(scale);
       notifyListeners();
     }

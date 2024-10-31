@@ -147,18 +147,13 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
       _HandleType.delete: Offset(bounds.center.dx, bounds.bottom + 20),
     };
 
-    developer.log('Checking handles at point: $point'); // DEBUG:
-
     // 変換行列を適用した座標でハンドルを判定
     for (final entry in handlePositions.entries) {
       // オブジェクトのローカル座標をスクリーン座標に変換
       final handlePos = _transformLocalPointToScreen(entry.value);
       final distance = (point - handlePos).distance;
 
-      developer.log('Handle ${entry.key}: pos=$handlePos, distance=$distance'); // DEBUG:
-
       if (distance <= _handleHitArea) {
-        developer.log('Handle found: ${entry.key}'); // DEBUG:
         return entry.key;
       }
     }
@@ -197,8 +192,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
         if (_activeHandle == null) {
           widget.controller.selectObject(localPosition);
         }
-
-        developer.log('Scale Start - Active Handle: $_activeHandle'); // DEBUG:
       }
     }
   }
@@ -309,8 +302,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
     final bounds = selectedObject.bounds;
     final center = bounds.center;
 
-    developer.log('Object Transform - Handle: $_activeHandle'); // DEBUG:
-
     switch (_activeHandle) {
       case _HandleType.topLeft:
       case _HandleType.topRight:
@@ -321,8 +312,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
         final currentDistance = (details.localFocalPoint - _transformLocalPointToScreen(center)).distance;
         final scale = currentDistance / initialDistance;
 
-        developer.log('Resize - Scale: $scale'); // DEBUG:
-
         widget.controller.resizeSelectedObject(scale);
         break;
 
@@ -332,8 +321,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
         final lastAngle = (_lastFocalPoint - screenCenter).direction;
         final currentAngle = (details.localFocalPoint - screenCenter).direction;
         final rotation = currentAngle - lastAngle;
-
-        developer.log('Rotate - Angle: $rotation'); // DEBUG:
 
         widget.controller.rotateSelectedObject(rotation);
         break;
