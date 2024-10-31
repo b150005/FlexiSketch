@@ -7,6 +7,7 @@ import '../objects/drawable_object.dart';
 /// CanvasPainterクラスは、キャンバス上に描画を行うためのカスタムペインターです。
 ///
 /// このクラスは、FlexiSketchControllerを使用して描画するオブジェクトを管理し、変換行列を適用して描画を行います。
+/// また、選択オブジェクトの UI 要素(ハンドルなど)の描画も担当します。
 class CanvasPainter extends CustomPainter {
   /// 描画を管理するコントローラー
   final FlexiSketchController controller;
@@ -14,7 +15,36 @@ class CanvasPainter extends CustomPainter {
   /// 描画に適用する変換行列
   final Matrix4 transform;
 
-  CanvasPainter({required this.controller, required this.transform}) : super(repaint: controller);
+  /// オブジェクト操作ハンドルのサイズ
+  final double handleSize;
+
+  /// 選択枠の色
+  static const selectionBorderColor = Colors.lightBlue;
+
+  /// 選択ハンドルの枠線色
+  static const handleBorderColor = Colors.lightBlue;
+
+  /// 選択ハンドルの背景色
+  static const handleFillColor = Colors.white;
+
+  /// 削除ハンドルの色
+  static const deleteHandleColor = Colors.red;
+
+  /// 選択枠の線幅
+  static const selectionBorderWidth = 2.0;
+
+  /// ハンドル枠の線幅
+  static const handleBorderWidth = 2.0;
+
+  /// 選択枠のダッシュパターン
+  static const dashPattern = <double>[5, 5];
+
+  /// コンストラクタ
+  /// 
+  /// [controller] 描画を管理するコントローラ
+  /// [transform] 描画に適用する変換行列
+  /// [handleSize] オブジェクト操作ハンドルのサイズ(デフォルト: `12.0`)
+  CanvasPainter({required this.controller, required this.transform, this.handleSize = 12.0}) : super(repaint: controller);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -33,6 +63,11 @@ class CanvasPainter extends CustomPainter {
     for (var object in controller.objects) {
       if (_isObjectVisible(object, visibleRect)) {
         object.draw(canvas);
+
+        // 選択状態のオブジェクトは選択時 UI (枠線・ハンドル)を描画
+        if (object.isSelected) {
+          _drawSelectionUI(canvas, object);
+        }
       }
     }
 
@@ -50,6 +85,15 @@ class CanvasPainter extends CustomPainter {
     canvas.restore();
   }
 
+  @override
+  bool shouldRepaint(covariant CanvasPainter oldDelegate) {
+    // 再描画が必要かどうかを判断する
+    return (oldDelegate.controller != controller || // コントローラーが異なる場合
+        oldDelegate.transform != transform || // 変換行列が異なる場合
+        oldDelegate.handleSize != handleSize || // ハンドルサイズが異なる場合
+        oldDelegate.controller.objects.length != controller.objects.length); // オブジェクトの数が異なる場合
+  }
+
   /// 可視領域を計算する
   ///
   /// このメソッドは、与えられたキャンバスとサイズを基に、現在の変換行列の逆行列を使用して可視領域の矩形を計算します。
@@ -63,18 +107,6 @@ class CanvasPainter extends CustomPainter {
 
     // 矩形を作成
     return Rect.fromPoints(Offset(topLeft.x, topLeft.y), Offset(bottomRight.x, bottomRight.y));
-  }
-
-  /// オブジェクトが可視領域内にあるかどうかを判断する
-  ///
-  /// このメソッドは、与えられた DrawableObject が可視領域と交差しているかどうかを確認するために使用されます。
-  /// 具体的な実装は DrawableObject の実装に依存します。
-  bool _isObjectVisible(DrawableObject object, Rect visibleRect) {
-    // 実装はDrawableObjectに基づいて行う必要があります。
-    // 例えば、オブジェクトのバウンディングボックスがvisibleRectと交差しているかを確認することができます。
-
-    // プレースホルダー
-    return true;
   }
 
   /// グリッドを描画する
@@ -103,11 +135,163 @@ class CanvasPainter extends CustomPainter {
     }
   }
 
-  @override
-  bool shouldRepaint(covariant CanvasPainter oldDelegate) {
-    // 再描画が必要かどうかを判断する
-    return (oldDelegate.controller != controller || // コントローラーが異なる場合
-        oldDelegate.transform != transform || // 変換行列が異なる場合
-        oldDelegate.controller.objects.length != controller.objects.length); // オブジェクトの数が異なる場合
+  /// オブジェクトが可視領域内にあるかどうか
+  ///
+  /// このメソッドは、与えられた DrawableObject が可視領域と交差しているかどうかを確認します。
+  /// 
+  /// [object] 判定対象のオブジェクト
+  /// [visibleRect] 可視領域を表す矩形
+  bool _isObjectVisible(DrawableObject object, Rect visibleRect) {
+    return visibleRect.overlaps(object.bounds);
+  }
+
+  /// 選択 UI を描画する
+  /// 
+  /// 選択されたオブジェクトの周囲に選択枠とハンドルを描画します。
+  /// 
+  /// [canvas] 描画対象のキャンバス
+  /// [object] 選択されたオブジェクト
+  void _drawSelectionUI(Canvas canvas, DrawableObject object) {
+    final bounds = object.bounds;
+
+    // 選択枠を描画
+    _drawSelectionBorder(canvas, bounds);
+
+    // 各種ハンドルを描画
+    _drawCornerHandles(canvas, bounds); // 四隅の拡大・縮小ハンドル
+    _drawRotationHandle(canvas, bounds); // 回転ハンドル
+    _drawDeleteHandle(canvas, bounds); // 削除ハンドル
+  }
+
+  /// 選択枠を描画する
+  /// 
+  /// [canvas] 描画対象のキャンバス
+  /// [bounds] オブジェクトのバウンディングボックス
+  void _drawSelectionBorder(Canvas canvas, Rect bounds) {
+    final paint = Paint()
+    ..color = selectionBorderColor
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = selectionBorderWidth;
+
+    // 点線のパスを作成
+    final path = Path();
+    var start = bounds.topLeft;
+    var current = start;
+
+    for (final point in [
+      bounds.topRight,
+      bounds.bottomRight,
+      bounds.bottomLeft,
+      bounds.topLeft,
+    ]) {
+      _addDashedLine(path, current, point, dashPattern);
+      current = point;
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  /// 点線を描画するためのパスを追加する
+  /// 
+  /// [path] 追加先のパス
+  /// [start] 開始点
+  /// [end] 終了点
+  /// [pattern] 点線のパターン(実戦と空白の長さの配列)
+  void _addDashedLine(Path path, Offset start, Offset end, List<double> pattern) {
+    final dx = end.dx - start.dx;
+    final dy = end.dy - start.dy;
+    final distance = (end - start).distance;
+    final steps = pattern.reduce((a, b) => a + b);
+    final count = (distance / steps).ceil();
+
+    var x = start.dx;
+    var y = start.dy;
+    var drawn = true;
+
+    path.moveTo(start.dx, start.dy);
+
+    for (var i = 0; i < count; i++) {
+      for (final length in pattern) {
+        x += dx * length / distance;
+        y += dy * length / distance;
+
+        if (drawn) {
+          path.lineTo(x, y);
+        } else {
+          path.moveTo(x, y);
+        }
+        drawn = !drawn;
+      }
+    }
+  }
+
+  /// 四隅のリサイズハンドルを描画する
+  /// 
+  /// [canvas] 描画対象のキャンバス
+  /// [bounds] オブジェクトのバウンディングボックス
+  void _drawCornerHandles(Canvas canvas, Rect bounds) {
+    final handlePaint = Paint()
+      ..color = handleFillColor
+      ..style = PaintingStyle.fill;
+
+    final handleBorderPaint = Paint()
+      ..color = handleBorderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = handleBorderWidth;
+
+    for (final point in [
+      bounds.topLeft,
+      bounds.topRight,
+      bounds.bottomLeft,
+      bounds.bottomRight,
+    ]) {
+      canvas
+      ..drawCircle(point, handleSize / 2, handlePaint)
+      ..drawCircle(point, handleSize / 2, handleBorderPaint);
+    }
+  }
+
+  /// 回転ハンドルを描画する
+  /// 
+  /// [canvas] 描画対象のキャンバス
+  /// [bounds] オブジェクトのバウンディングボックス
+  void _drawRotationHandle(Canvas canvas, Rect bounds) {
+    final handlePaint = Paint()
+      ..color = handleFillColor
+      ..style = PaintingStyle.fill;
+    
+    final handleBorderPaint = Paint()
+    ..color = handleBorderColor
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = handleBorderWidth;
+
+    final rotationHandle = Offset(bounds.center.dx, bounds.top - 20);
+
+    canvas
+      ..drawCircle(rotationHandle, handleSize / 2, handlePaint)
+      ..drawCircle(rotationHandle, handleSize / 2, handleBorderPaint)
+      ..drawLine(Offset(bounds.center.dx, bounds.top), rotationHandle, handleBorderPaint);
+  }
+
+  /// 削除ハンドルを描画する
+  /// 
+  /// [canvas] 描画対象のキャンバス
+  /// [bounds] オブジェクトのバウンディングボックス
+  void _drawDeleteHandle(Canvas canvas, Rect bounds) {
+    final handlePaint = Paint()
+      ..color = deleteHandleColor
+      ..style = PaintingStyle.fill;
+
+    final handleBorderPaint = Paint()
+    ..color = handleBorderColor
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = handleBorderWidth;
+
+    final deleteHandle = Offset(bounds.center.dx, bounds.bottom + 20);
+
+    canvas
+      ..drawCircle(deleteHandle, handleSize / 2, handlePaint)
+      ..drawCircle(deleteHandle, handleSize / 2, handleBorderPaint)
+      ..drawLine(Offset(bounds.center.dx, bounds.bottom), deleteHandle, handleBorderPaint);
   }
 }

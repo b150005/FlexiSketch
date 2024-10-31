@@ -1,6 +1,8 @@
 import 'dart:developer' as developer;
 import 'dart:ui';
 
+import 'package:flutter/material.dart';
+
 import 'drawable_object.dart';
 
 /// パス(線)オブジェクト
@@ -19,20 +21,37 @@ class PathObject extends DrawableObject {
   PathObject({required this.path, required this.paint}) : super(position: Offset.zero);
 
   @override
-  Rect get bounds {
+  Rect get localBounds {
     _cachedBounds ??= path.getBounds();
     return _cachedBounds!;
   }
 
   @override
   void drawObject(Canvas canvas) {
+    // 変換はDrawableObjectのdrawメソッドで適用されるため、オリジナルのパスをそのまま描画
     canvas.drawPath(path, paint);
   }
 
   @override
   bool intersects(Path other) {
     // バウンディングボックスで大まかな判定を最初に行う（パフォーマンス最適化）
-    if (!path.getBounds().overlaps(other.getBounds())) {
+    // if (!path.getBounds().overlaps(other.getBounds())) {
+    //   return false;
+    // }
+
+    // 現在の変換を適用したパスを取得
+    final center = localBounds.center;
+    final matrix = Matrix4.identity()
+      ..translate(position.dx, position.dy)
+      ..translate(center.dx, center.dy)
+      ..rotateZ(rotation)
+      ..scale(scale)
+      ..translate(-center.dx, -center.dy);
+
+    final transformedPath = path.transform(matrix.storage);
+
+    // 変換済みのパスで大まかな交差判定を行う(パフォーマンス最適化)
+    if (!transformedPath.getBounds().overlaps(other.getBounds())) {
       return false;
     }
 
@@ -41,7 +60,7 @@ class PathObject extends DrawableObject {
       // 2つのパスを組み合わせて交差部分を取得
       Path intersectionPath = Path.combine(
         PathOperation.intersect,
-        path,
+        transformedPath,
         other,
       );
 

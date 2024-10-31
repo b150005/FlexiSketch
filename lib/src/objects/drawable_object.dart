@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 
 /// 描画可能なオブジェクトの基底クラス
@@ -23,8 +25,21 @@ abstract class DrawableObject {
     this.scale = 1.0,
   });
 
-  /// バウンディングボックス(オブジェクトの矩形)を取得する
-  Rect get bounds;
+  /// オブジェクトのローカル座標系でのバウンディングボックス
+  Rect get localBounds;
+
+  /// 現在の変換を適用したバウンディングボックス(オブジェクトの矩形)を取得する
+  Rect get bounds {
+    final rect = localBounds;
+    final matrix = Matrix4.identity()
+      ..translate(position.dx, position.dy) // 位置の移動
+      ..translate(rect.center.dx, rect.center.dy) // 中心を基準として回転・スケール
+      ..rotateZ(rotation)
+      ..scale(scale)
+      ..translate(-rect.center.dx, -rect.center.dy); // 中心での変換を元に戻す
+
+    return MatrixUtils.transformRect(matrix, rect);
+  }
 
   /// オブジェクトの変換行列を取得する
   Matrix4 get transform {
@@ -39,13 +54,27 @@ abstract class DrawableObject {
   /// [canvas] 描画対象のキャンバス
   void draw(Canvas canvas) {
     canvas.save();
+
+    // オブジェクトの変換を適用
+    final center = localBounds.center;
+    developer.log('Applying transform: position=$position, rotation=$rotation, scale=$scale, center=$center');
+    canvas
+      ..translate(position.dx, position.dy) // 位置の移動
+      ..translate(center.dx, center.dy) //中心点に移動
+      ..rotate(rotation) // 回転
+      ..scale(scale) // スケーリング
+      ..translate(-center.dx, -center.dy); // 中心点から戻す
+
+    // オブジェクトの描画
     drawObject(canvas);
 
+    canvas.restore();
+
+    // 選択 UI の描画(変換を適用せず描画)
     if (isSelected) {
+      developer.log('選択UI描画します！');
       _drawSelectionUI(canvas);
     }
-
-    canvas.restore();
   }
 
   /// オブジェクト固有の描画処理
@@ -57,6 +86,7 @@ abstract class DrawableObject {
   ///
   /// オブジェクト選択時に呼び出され、枠線と各種操作(移動、回転、削除、拡大・縮小)用のハンドルを描画します。
   void _drawSelectionUI(Canvas canvas) {
+    // 変換済みのバウンディングボックスを取得
     final rect = bounds;
     final borderPaint = Paint()
       ..color = Colors.lightBlue
@@ -100,7 +130,8 @@ abstract class DrawableObject {
     canvas
       ..drawCircle(rotationHandle, 6.0, handlePaint)
       ..drawCircle(rotationHandle, 6.0, handleBorderPaint)
-      ..drawLine(Offset(rect.center.dx, rect.top), rotationHandle, handleBorderPaint);
+      // ..drawLine(Offset(rect.center.dx, rect.top), rotationHandle, handleBorderPaint);
+      ..drawLine(rect.topCenter, rotationHandle, handleBorderPaint);
 
     final deleteHandle = Offset(rect.center.dx, rect.bottom + 20);
     final deleteHandlePaint = Paint()
@@ -110,7 +141,8 @@ abstract class DrawableObject {
     // 下部の削除ハンドル
     canvas
       ..drawCircle(deleteHandle, 6.0, deleteHandlePaint)
-      ..drawLine(Offset(rect.center.dx, rect.bottom), deleteHandle, handleBorderPaint);
+      // ..drawLine(Offset(rect.center.dx, rect.bottom), deleteHandle, handleBorderPaint);
+      ..drawLine(rect.bottomCenter, deleteHandle, handleBorderPaint);
   }
 
   /// 指定された線(Path)と交差するかどうか

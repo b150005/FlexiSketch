@@ -27,22 +27,30 @@ class ShapeObject extends DrawableObject {
   }) : super(position: Offset.zero);
 
   @override
-  Rect get bounds {
+  Rect get localBounds {
     return Rect.fromPoints(startPoint, endPoint);
   }
 
   @override
   void drawObject(Canvas canvas) {
+    // 図形の描画時は相対的な位置を使用
+    final relativeStartPoint = startPoint - position;
+    final relativeEndPoint = endPoint - position;
+
     switch (shapeType) {
       case ShapeType.rectangle:
-        canvas.drawRect(bounds, paint);
+        // canvas.drawRect(bounds, paint);
+        canvas.drawRect(Rect.fromPoints(relativeStartPoint, relativeEndPoint), paint);
         break;
       case ShapeType.circle:
+        // final center = Offset(
+        //   (startPoint.dx + endPoint.dx) / 2,
+        //   (startPoint.dy + endPoint.dy) / 2,
+        // );
+        // final radius = (endPoint - startPoint).distance / 2;
         final center = Offset(
-          (startPoint.dx + endPoint.dx) / 2,
-          (startPoint.dy + endPoint.dy) / 2,
-        );
-        final radius = (endPoint - startPoint).distance / 2;
+            (relativeStartPoint.dx + relativeEndPoint.dx) / 2, (relativeStartPoint.dy + relativeEndPoint.dy) / 2);
+        final radius = (relativeEndPoint - relativeStartPoint).distance / 2;
         canvas.drawCircle(center, radius, paint);
         break;
     }

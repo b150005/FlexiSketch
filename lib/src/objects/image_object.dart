@@ -22,20 +22,25 @@ class ImageObject extends DrawableObject {
   }) : originalSize = Size(image.width.toDouble(), image.height.toDouble());
 
   @override
-  Rect get bounds {
+  Rect get localBounds {
     final size = originalSize * scale;
-    return Rect.fromLTWH(position.dx - size.width / 2, position.dy - size.height / 2, size.width, size.height);
+    // return Rect.fromLTWH(position.dx - size.width / 2, position.dy - size.height / 2, size.width, size.height);
+    return Rect.fromCenter(center: position, width: size.width, height: size.height);
   }
 
   @override
   void drawObject(Canvas canvas) {
-    final center = bounds.center;
-    canvas
-      ..translate(center.dx, center.dy)
-      ..rotate(rotation)
-      ..scale(scale)
-      ..translate(-originalSize.width / 2, -originalSize.height / 2)
-      ..drawImage(image, Offset.zero, Paint());
+    // final center = bounds.center;
+    // canvas
+    //   ..translate(center.dx, center.dy)
+    //   ..rotate(rotation)
+    //   ..scale(scale)
+    //   ..translate(-originalSize.width / 2, -originalSize.height / 2)
+    //   ..drawImage(image, Offset.zero, Paint());
+
+    // 画像は中心を基準に描画
+    final size = originalSize;
+    canvas.drawImage(image, Offset(-size.width / 2, -size.height / 2), Paint());
   }
 
   @override
