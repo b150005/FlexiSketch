@@ -1,5 +1,4 @@
 import 'dart:ui' as ui;
-import 'dart:developer' as developer;
 
 import 'package:flexi_sketch/src/services/clipboard_service.dart';
 import 'package:flutter/material.dart';
@@ -203,7 +202,6 @@ class FlexiSketchController extends ChangeNotifier {
 
   /// パス(線)の描画を開始する
   void startPath(Offset point, {BlendMode blendMode = BlendMode.srcOver}) {
-    developer.log('Start Path at point: $point');
     final path = Path()..moveTo(0, 0); // 原点から開始
     final paint = _currentTool?.createPaint(_currentColor, _currentStrokeWidth);
     _currentPath = PathObject(inputPath: path, paint: paint ?? Paint());
@@ -223,12 +221,6 @@ class FlexiSketchController extends ChangeNotifier {
   /// パス(線)の描画を終了する
   void endPath() {
     if (_currentPath != null) {
-      developer.log('''
-End Path:
-  Final bounds: ${_currentPath?.path.getBounds()}
-  Position: ${_currentPath?.globalCenter}
-      ''');
-
       _addToHistory(HistoryEntryType.draw);
       _objects.add(_currentPath!);
       _currentPath = null;
