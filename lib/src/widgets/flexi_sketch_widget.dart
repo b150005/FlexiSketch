@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 
 import '../../flexi_sketch_controller.dart';
 import '../canvas/infinite_canvas.dart';
-import 'color_palette.dart';
-import 'stroke_width_slider.dart';
 import 'toolbar.dart';
 
 /// FlexiSketch のメインウィジェット
@@ -32,35 +30,33 @@ class FlexiSketchWidget extends StatelessWidget {
       },
       child: Focus(
         autofocus: true,
-        child: Scaffold(
-          body: SafeArea(
-            child: Stack(
-              children: [
-                LayoutBuilder(builder: (context, constraints) {
-                  // キャンバスサイズの更新
-                  controller.updateCanvasSize(Size(constraints.maxWidth, constraints.maxHeight));
-
-                  return InfiniteCanvas(controller: controller);
-                }),
-                Positioned(
-                  left: 16,
-                  top: 16,
-                  child: Column(
-                    children: [
-                      ColorPalette(controller: controller),
-                      const SizedBox(height: 16),
-                      StrokeWidthSlider(controller: controller),
-                    ],
+        child: ScaffoldMessenger(
+          key: _scaffoldMessengerKey,
+          child: Scaffold(
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  // キャンバス
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      // キャンバスサイズの更新
+                      controller.updateCanvasSize(Size(
+                        constraints.maxWidth,
+                        constraints.maxHeight,
+                      ));
+                      return InfiniteCanvas(controller: controller);
+                    },
                   ),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Toolbar(controller: controller),
+                  // ツールバー（下部中央に配置）
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Toolbar(controller: controller),
+                    ),
                   ),
-                )
-              ],
+                ],
+              ),
             ),
           ),
         ),

@@ -4,8 +4,17 @@ import '../../flexi_sketch_controller.dart';
 import '../tools/eraser_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/shape_tool.dart';
+import 'color_button.dart';
+import 'stroke_width_button.dart';
+import 'tool_button.dart';
 
+/// FlexiSketch のツールバーウィジェット
+///
+/// 描画ツール、図形ツール、画像操作ツール、編集操作などのツールボタンと、
+/// カラーピッカー、ストロークの太さ設定を提供します。
+/// モバイル画面でも使いやすいよう、コンパクトな2段組みレイアウトで設計されています。
 class Toolbar extends StatefulWidget {
+  /// スケッチの状態を管理するコントローラ
   final FlexiSketchController controller;
 
   const Toolbar({super.key, required this.controller});
@@ -20,6 +29,21 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
 
   /// フェードインアニメーションの定義
   late Animation<double> _fadeAnimation;
+
+  /// カラーピッカーの表示状態
+  bool _isColorPickerExpanded = false;
+
+  /// 定義済みカラーパレット
+  final List<Color> _predefinedColors = [
+    Colors.black,
+    Colors.red,
+    Colors.blue,
+    Colors.green,
+    Colors.yellow,
+    Colors.purple,
+    Colors.orange,
+    Colors.brown,
+  ];
 
   @override
   void initState() {
@@ -64,19 +88,19 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 上段：描画ツールと画像ツール
+            // 上段：描画ツール、図形ツール、画像ツール、カラーピッカー
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // 描画ツール群
                 _buildToolGroup([
-                  _ToolButton(
+                  ToolButton(
                     icon: Icons.edit,
                     tooltip: 'ペン',
                     isSelected: widget.controller.isSpecificToolSelected(PenTool()),
                     onPressed: () => widget.controller.toggleTool(PenTool()),
                   ),
-                  _ToolButton(
+                  ToolButton(
                     icon: Icons.auto_fix_high,
                     tooltip: '消しゴム',
                     isSelected: widget.controller.isSpecificToolSelected(EraserTool()),
@@ -86,13 +110,13 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                 _buildVerticalDivider(),
                 // 図形ツール群
                 _buildToolGroup([
-                  _ToolButton(
+                  ToolButton(
                     icon: Icons.crop_square,
                     tooltip: '四角形',
                     isSelected: widget.controller.isSpecificToolSelected(ShapeTool(shapeType: ShapeType.rectangle)),
                     onPressed: () => widget.controller.toggleTool(ShapeTool(shapeType: ShapeType.rectangle)),
                   ),
-                  _ToolButton(
+                  ToolButton(
                     icon: Icons.circle_outlined,
                     tooltip: '円',
                     isSelected: widget.controller.isSpecificToolSelected(ShapeTool(shapeType: ShapeType.circle)),
@@ -102,31 +126,49 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                 _buildVerticalDivider(),
                 // 画像ツール群
                 _buildToolGroup([
-                  _ToolButton(
+                  ToolButton(
                     icon: Icons.upload_file,
                     tooltip: '画像をアップロード',
                     onPressed: widget.controller.pickAndAddImage,
                   ),
-                  _ToolButton(
+                  ToolButton(
                     icon: Icons.paste,
                     tooltip: '画像を貼り付け',
                     onPressed: widget.controller.pasteImageFromClipboard,
                   ),
                 ]),
+                _buildVerticalDivider(),
+                // カラーピッカーとストローク幅
+                _buildToolGroup([
+                  ColorButton(
+                    color: widget.controller.currentColor,
+                    isExpanded: _isColorPickerExpanded,
+                    onPressed: _toggleColorPicker,
+                  ),
+                  StrokeWidthButton(
+                    strokeWidth: widget.controller.currentStrokeWidth,
+                    onChanged: widget.controller.setStrokeWidth,
+                  ),
+                ]),
               ],
             ),
+            // カラーピッカー（展開時のみ表示）
+            if (_isColorPickerExpanded) ...[
+              const SizedBox(height: 8),
+              _buildColorPalette(),
+            ],
             const SizedBox(height: 8),
             // 下段：編集操作
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildToolGroup([
-                  _ToolButton(
+                  ToolButton(
                     icon: Icons.undo,
                     tooltip: '元に戻す',
                     onPressed: widget.controller.canUndo ? widget.controller.undo : null,
                   ),
-                  _ToolButton(
+                  ToolButton(
                     icon: Icons.redo,
                     tooltip: 'やり直す',
                     onPressed: widget.controller.canRedo ? widget.controller.redo : null,
@@ -134,7 +176,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                 ]),
                 _buildVerticalDivider(),
                 _buildToolGroup([
-                  _ToolButton(
+                  ToolButton(
                     icon: Icons.delete_outline,
                     tooltip: '全て消去',
                     onPressed: widget.controller.clear,
@@ -148,19 +190,43 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     );
   }
 
-  /// コントローラの状態変更時に呼び出されるコールバック
-  ///
-  /// コントローラの状態が変更された際にウィジェットを再描画します。
-  void _onControllerChanged() {
-    setState(() {});
+  /// カラーパレットを構築する
+  Widget _buildColorPalette() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _predefinedColors.map((color) {
+        return InkWell(
+          onTap: () {
+            widget.controller.setColor(color);
+            setState(() => _isColorPickerExpanded = false);
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.grey.withOpacity(0.3),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 
-  /// ツールボタンのグループを構築する
-  ///
-  /// 指定された [children] ウィジェットをグループ化し、適切な余白を設定します。
-  /// グループ内の各ボタンには、位置に応じた余白が設定されます。
-  ///
-  /// [children] グループ化するウィジェットのリスト
+  /// ツールグループを構築する
   Widget _buildToolGroup(List<Widget> children) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -177,9 +243,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     );
   }
 
-  /// ツールグループ間の縦方向の区切り線を構築する
-  ///
-  /// グループ間の視覚的な区切りとして、薄いグレーの縦線を表示します。
+  /// 区切り線を構築する
   Widget _buildVerticalDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -192,66 +256,15 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
       ),
     );
   }
-}
 
-/// ツールバーで使用する個々のツールボタン
-///
-/// アイコン、ツールチップ、タップ時の動作、選択状態などをカスタマイズ可能なボタンウィジェットを提供します。
-/// ボタンは選択状態に応じて視覚的なフィードバックを提供します。
-class _ToolButton extends StatelessWidget {
-  /// ボタンに表示するアイコン
-  final IconData icon;
+  /// カラーピッカーの表示状態を切り替える
+  void _toggleColorPicker() {
+    setState(() {
+      _isColorPickerExpanded = !_isColorPickerExpanded;
+    });
+  }
 
-  /// マウスホバー時に表示するツールチップのテキスト
-  final String tooltip;
-
-  /// ボタンタップ時のコールバック関数
-  ///
-  /// `null` の場合、ボタンは無効状態として表示されます。
-  final VoidCallback? onPressed;
-
-  /// ボタンの選択状態
-  ///
-  /// `true` の場合、ボタンは選択状態として強調表示されます。
-  final bool isSelected;
-
-  const _ToolButton({
-    required this.icon,
-    required this.tooltip,
-    this.onPressed,
-    this.isSelected = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTap: onPressed,
-          child: Ink(
-            decoration: BoxDecoration(
-              color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
-              border: Border.all(
-                color: isSelected ? Theme.of(context).primaryColor : Colors.grey.withOpacity(0.3),
-                width: 1,
-              ),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: SizedBox(
-              width: 36,
-              height: 36,
-              child: Icon(
-                icon,
-                size: 20,
-                color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).iconTheme.color,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+  void _onControllerChanged() {
+    setState(() {});
   }
 }
