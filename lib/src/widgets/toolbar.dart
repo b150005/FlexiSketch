@@ -88,7 +88,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 上段：描画ツール、図形ツール、画像ツール、カラーピッカー
+            // 上段：描画ツール、図形ツール、画像ツール
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -137,8 +137,18 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                     onPressed: widget.controller.pasteImageFromClipboard,
                   ),
                 ]),
-                _buildVerticalDivider(),
-                // カラーピッカーとストローク幅
+              ],
+            ),
+            if (_isColorPickerExpanded) ...[
+              const SizedBox(height: 8),
+              _buildColorPalette(),
+            ],
+            const SizedBox(height: 8),
+            // 下段：スタイル設定と編集操作
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // スタイル設定（カラーピッカーと線の太さ）
                 _buildToolGroup([
                   ColorButton(
                     color: widget.controller.currentColor,
@@ -150,18 +160,8 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                     onChanged: widget.controller.setStrokeWidth,
                   ),
                 ]),
-              ],
-            ),
-            // カラーピッカー（展開時のみ表示）
-            if (_isColorPickerExpanded) ...[
-              const SizedBox(height: 8),
-              _buildColorPalette(),
-            ],
-            const SizedBox(height: 8),
-            // 下段：編集操作
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+                _buildVerticalDivider(),
+                // 編集操作
                 _buildToolGroup([
                   ToolButton(
                     icon: Icons.undo,
