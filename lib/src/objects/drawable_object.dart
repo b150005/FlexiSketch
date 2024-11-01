@@ -1,5 +1,3 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/material.dart';
 
 /// 描画可能なオブジェクトの基底クラス
