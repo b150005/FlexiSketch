@@ -22,7 +22,7 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
   /// キャンバスの変換(移動、拡大・縮小)を管理するコントローラ
   late TransformationController _transformationController;
 
-  /// 最後のタッチ・マウス位置
+  /// 最後のタッチ・マウスのローカル座標
   Offset _lastFocalPoint = Offset.zero;
 
   /// 最後のスケール値
@@ -244,9 +244,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
 
   /// スケール操作が終了したときに呼ばれるコールバック
   void _handleScaleEnd(ScaleEndDetails details) {
-    // if (widget.controller.isToolSelected) {
-    //   widget.controller.endDrawing();
-    // }
     if (_activeHandle == _HandleType.delete && widget.controller.hasSelection) {
       widget.controller.deleteSelectedObject();
     }

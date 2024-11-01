@@ -11,41 +11,61 @@ class ImageObject extends DrawableObject {
   /// 画像データ
   final ui.Image image;
 
-  /// 元のサイズ
-  final Size originalSize;
+  final Paint paint;
+
+  final Size _size;
+
+  Rect? _localBoundsCache;
 
   ImageObject({
     required this.image,
-    required super.position,
-    super.rotation,
-    super.scale,
-  }) : originalSize = Size(image.width.toDouble(), image.height.toDouble());
+    required super.globalCenter,
+    Paint? paint,
+  })  : _size = Size(image.width.toDouble(), image.height.toDouble()),
+        paint = paint ?? Paint();
 
   @override
   Rect get localBounds {
-    final size = originalSize * scale;
-    // return Rect.fromLTWH(position.dx - size.width / 2, position.dy - size.height / 2, size.width, size.height);
-    return Rect.fromCenter(center: position, width: size.width, height: size.height);
+    _localBoundsCache ??= Rect.fromCenter(
+      center: Offset.zero,
+      width: _size.width,
+      height: _size.height,
+    );
+    return _localBoundsCache!;
   }
 
   @override
   void drawObject(Canvas canvas) {
-    // final center = bounds.center;
-    // canvas
-    //   ..translate(center.dx, center.dy)
-    //   ..rotate(rotation)
-    //   ..scale(scale)
-    //   ..translate(-originalSize.width / 2, -originalSize.height / 2)
-    //   ..drawImage(image, Offset.zero, Paint());
+    final srcRect = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    final dstRect = Rect.fromCenter(
+      center: Offset.zero,
+      width: _size.width,
+      height: _size.height,
+    );
 
-    // 画像は中心を基準に描画
-    final size = originalSize;
-    canvas.drawImage(image, Offset(-size.width / 2, -size.height / 2), Paint());
+    canvas.drawImageRect(image, srcRect, dstRect, paint);
   }
 
   @override
-  bool intersects(Path other) {
+  bool checkIntersection(Path other) {
+    // 画像は矩形として交差判定
     final imagePath = Path()..addRect(bounds);
-    return Path.combine(PathOperation.intersect, imagePath, other).computeMetrics().isNotEmpty;
+    try {
+      final intersectionPath = Path.combine(
+        PathOperation.intersect,
+        imagePath,
+        other,
+      );
+
+      return intersectionPath.computeMetrics().fold(0.0, (sum, metric) => sum + metric.length) > 1.0;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  @override
+  bool checkContainsPoint(Offset localPoint) {
+    // 画像は矩形として判定
+    return localBounds.contains(localPoint);
   }
 }

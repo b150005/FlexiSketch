@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'dart:developer' as developer;
 
 import 'package:flexi_sketch/src/services/clipboard_service.dart';
 import 'package:flutter/material.dart';
@@ -202,20 +203,32 @@ class FlexiSketchController extends ChangeNotifier {
 
   /// パス(線)の描画を開始する
   void startPath(Offset point, {BlendMode blendMode = BlendMode.srcOver}) {
-    final path = Path()..moveTo(point.dx, point.dy);
+    developer.log('Start Path at point: $point');
+    final path = Path()..moveTo(0, 0); // 原点から開始
     final paint = _currentTool?.createPaint(_currentColor, _currentStrokeWidth);
-    _currentPath = PathObject(path: path, paint: paint ?? Paint());
+    _currentPath = PathObject(inputPath: path, paint: paint ?? Paint());
+    _currentPath?.translate(point); // 開始点に移動
   }
 
   /// パス(線)を描画する
   void addPointToPath(Offset point) {
-    _currentPath?.path.lineTo(point.dx, point.dy);
-    notifyListeners();
+    if (_currentPath != null) {
+      // グローバル座標をローカル座標に変換
+      final localPoint = _currentPath!.globalToLocal(point);
+      _currentPath!.addPoint(localPoint);
+      notifyListeners();
+    }
   }
 
   /// パス(線)の描画を終了する
   void endPath() {
     if (_currentPath != null) {
+      developer.log('''
+End Path:
+  Final bounds: ${_currentPath?.path.getBounds()}
+  Position: ${_currentPath?.globalCenter}
+      ''');
+
       _addToHistory(HistoryEntryType.draw);
       _objects.add(_currentPath!);
       _currentPath = null;
@@ -225,24 +238,29 @@ class FlexiSketchController extends ChangeNotifier {
 
   /// 消しゴムを開始する
   void startErasing(Offset point) {
-    final path = Path()..moveTo(point.dx, point.dy);
+    // final path = Path()..moveTo(point.dx, point.dy);
+    final path = Path()..moveTo(0, 0);
     final paint = Paint()
       ..color = Colors.red.withOpacity(0.3)
       ..strokeWidth = _currentStrokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    _currentPath = PathObject(path: path, paint: paint);
+    _currentPath = PathObject(inputPath: path, paint: paint);
+    _currentPath?.translate(point); // 開始点に移動
     notifyListeners();
   }
 
   /// 消しゴムを実行する
   void continueErasing(Offset point) {
     if (_currentPath != null) {
-      _currentPath!.path.lineTo(point.dx, point.dy);
-      if (_objects.any((obj) => obj.intersects(_currentPath!.path))) {
+      final localPoint = _currentPath!.globalToLocal(point);
+      _currentPath!.addPoint(localPoint);
+
+      // 変換済みのパスを使用して交差判定
+      if (_objects.any((obj) => obj.intersects(_currentPath!.getTransformedPath()))) {
         _addToHistory(HistoryEntryType.erase);
-        _objects.removeWhere((obj) => obj.intersects(_currentPath!.path));
+        _objects.removeWhere((obj) => obj.intersects(_currentPath!.getTransformedPath()));
       }
       notifyListeners();
     }
@@ -260,9 +278,10 @@ class FlexiSketchController extends ChangeNotifier {
       ..color = _currentColor
       ..strokeWidth = _currentStrokeWidth
       ..style = PaintingStyle.stroke;
+
     _currentShape = ShapeObject(
       startPoint: point,
-      endPoint: point,
+      endPoint: point, // 初期状態では開始点・終了点は同じ
       shapeType: shapeType,
       paint: paint,
     );
@@ -273,7 +292,7 @@ class FlexiSketchController extends ChangeNotifier {
   /// 図形を描画する
   void updateShape(Offset point) {
     if (_currentShape != null) {
-      _currentShape!.endPoint = point;
+      _currentShape!.updateShape(point);
       notifyListeners();
     }
   }
@@ -281,8 +300,12 @@ class FlexiSketchController extends ChangeNotifier {
   /// 図形の描画を終了する
   void endShape() {
     if (_currentShape != null) {
-      _addToHistory(HistoryEntryType.draw);
-      _objects.add(_currentShape!);
+      // 開始点と終了点が同じ（クリックのみで図形が作られていない）場合は
+      // 最小サイズの図形を作成するなどの処理を追加することもできます
+      if (_currentShape!.startPoint != _currentShape!.endPoint) {
+        _addToHistory(HistoryEntryType.draw);
+        _objects.add(_currentShape!);
+      }
       _currentShape = null;
       notifyListeners();
     }
@@ -406,7 +429,7 @@ class FlexiSketchController extends ChangeNotifier {
       final frame = await codec.getNextFrame();
       final image = frame.image;
 
-      final imageObject = ImageObject(image: image, position: _getCanvasCenter());
+      final imageObject = ImageObject(image: image, globalCenter: _getCanvasCenter());
 
       _addToHistory(HistoryEntryType.paste);
       _objects.add(imageObject);

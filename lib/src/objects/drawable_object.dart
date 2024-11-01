@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 
 /// 描画可能なオブジェクトの基底クラス
@@ -8,8 +10,8 @@ abstract class DrawableObject {
   /// オブジェクトが選択されているかどうか
   bool isSelected = false;
 
-  /// 位置
-  Offset position;
+  /// グローバル座標系でのオブジェクトの中心点
+  Offset globalCenter;
 
   /// 回転角度[rad]
   double rotation = 0.0;
@@ -17,8 +19,20 @@ abstract class DrawableObject {
   /// スケール
   double scale = 1.0;
 
+  /// 変換行列のキャッシュ
+  ///
+  /// 変換行列の計算は比較的重いため、position/rotation/scaleが変更されるまでキャッシュします。
+  /// これにより、同じ変換行列を何度も計算することを避けられます。
+  Matrix4? _transformCache;
+
+  /// 逆変換行列のキャッシュ
+  ///
+  /// 逆行列の計算は特に重い処理のため、変換行列が更新されるまでキャッシュします。
+  /// これは主にグローバル座標からローカル座標への変換時に使用されます。
+  Matrix4? _inverseTransformCache;
+
   DrawableObject({
-    required this.position,
+    required this.globalCenter,
     this.rotation = 0.0,
     this.scale = 1.0,
   });
@@ -32,23 +46,39 @@ abstract class DrawableObject {
   ///
   /// 全ての変換(移動、回転、スケール)が適用された後の、キャンバス座標系での実際の矩形領域を表します。
   Rect get bounds {
-    final rect = localBounds;
-    final matrix = Matrix4.identity()
-      ..translate(position.dx, position.dy) // 位置の移動
-      ..translate(rect.center.dx, rect.center.dy) // 中心を基準として回転・スケール
-      ..rotateZ(rotation)
-      ..scale(scale)
-      ..translate(-rect.center.dx, -rect.center.dy); // 中心での変換を元に戻す
-
-    return MatrixUtils.transformRect(matrix, rect);
+    return MatrixUtils.transformRect(transform, localBounds);
   }
 
   /// オブジェクトの変換行列を取得する
   Matrix4 get transform {
+    _transformCache ??= _createTransformMatrix();
+    return _transformCache!;
+  }
+
+  /// 変換行列を生成する
+  Matrix4 _createTransformMatrix() {
+    final center = localBounds.center;
     return Matrix4.identity()
-      ..translate(position.dx, position.dy)
+      ..translate(globalCenter.dx, globalCenter.dy) // グローバル位置への移動
+      ..translate(center.dx, center.dy) // 中心を基準に回転・スケール
       ..rotateZ(rotation)
-      ..scale(scale);
+      ..scale(scale)
+      ..translate(-center.dx, -center.dy); // 中心での変換を元に戻す
+  }
+
+  /// グローバル座標をローカル座標に変換する
+  Offset globalToLocal(Offset globalPoint) {
+    _inverseTransformCache ??= Matrix4.tryInvert(transform);
+    if (_inverseTransformCache == null) {
+      // 逆行列が存在しない場合のフォールバック
+      return globalPoint - globalCenter;
+    }
+    return MatrixUtils.transformPoint(_inverseTransformCache!, globalPoint);
+  }
+
+  /// ローカル座標をグローバル座標に変換する
+  Offset localToGlobal(Offset localPoint) {
+    return MatrixUtils.transformPoint(transform, localPoint);
   }
 
   /// オブジェクトを描画する
@@ -56,15 +86,7 @@ abstract class DrawableObject {
   /// [canvas] 描画対象のキャンバス
   void draw(Canvas canvas) {
     canvas.save();
-
-    // オブジェクトの変換を適用
-    final center = localBounds.center;
-    canvas
-      ..translate(position.dx, position.dy) // 位置の移動
-      ..translate(center.dx, center.dy) //中心点に移動
-      ..rotate(rotation) // 回転
-      ..scale(scale) // スケーリング
-      ..translate(-center.dx, -center.dy); // 中心点から戻す
+    canvas.transform(transform.storage);
 
     // オブジェクトの描画
     drawObject(canvas);
@@ -146,20 +168,49 @@ abstract class DrawableObject {
   /// 指定された線(Path)と交差するかどうか
   ///
   /// [other] 交差判定対象の線(Path)
-  bool intersects(Path other);
+  bool intersects(Path other) {
+    // バウンディングボックスによる高速な判定
+    if (!bounds.overlaps(other.getBounds())) {
+      return false;
+    }
+
+    // 詳細な交差判定はサブクラスで実装
+    return checkIntersection(other);
+  }
+
+  /// 詳細な交差判定
+  ///
+  /// サブクラスで実装必須
+  /// [other] 交差判定対象の線(Path)
+  bool checkIntersection(Path other);
 
   /// 指定された点がオブジェクト内に含まれるかどうか
   ///
   /// [point] 判定対象の点の座標
   bool containsPoint(Offset point) {
-    return bounds.contains(point);
+    // バウンディングボックスによる高速な判定
+    if (!bounds.contains(point)) {
+      return false;
+    }
+
+    // グローバル座標 → ローカル座標に変換
+    Offset localPoint = globalToLocal(point);
+
+    // 詳細な判定はサブクラスで実装
+    return checkContainsPoint(localPoint);
   }
+
+  /// 詳細な点包含判定
+  ///
+  /// サブクラスで実装必須
+  bool checkContainsPoint(Offset localPoint);
 
   /// オブジェクトを移動する
   ///
   /// [delta] 変位
   void translate(Offset delta) {
-    position += delta;
+    globalCenter += delta;
+    _invalidateTransform();
   }
 
   /// オブジェクトを回転する
@@ -167,6 +218,7 @@ abstract class DrawableObject {
   /// [angle] 回転角度[rad]
   void rotate(double angle) {
     rotation += angle;
+    _invalidateTransform();
   }
 
   /// オブジェクトをリサイズする
@@ -174,5 +226,12 @@ abstract class DrawableObject {
   /// [newScale] スケール値の変更量
   void resize(double newScale) {
     scale *= newScale;
+    _invalidateTransform();
+  }
+
+  /// 変換行列のキャッシュを無効化する
+  void _invalidateTransform() {
+    _transformCache = null;
+    _inverseTransformCache = null;
   }
 }
