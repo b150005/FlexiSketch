@@ -31,7 +31,7 @@ class ShapeObject extends DrawableObject {
   Paint paint;
 
   // 図形の最小サイズ（ピクセル単位）
-  static const double MIN_SIZE = 10.0;
+  static const double minSize = 10.0;
 
   /// コンストラクタ
   ///
@@ -135,12 +135,24 @@ class ShapeObject extends DrawableObject {
   void updateShape(Offset newEndPoint) {
     // 最小サイズを確保
     final currentRect = Rect.fromPoints(_startPoint, newEndPoint);
-    if (currentRect.width < MIN_SIZE || currentRect.height < MIN_SIZE) {
+
+    // 最小サイズの制約を適用
+    if (currentRect.width < minSize || currentRect.height < minSize) {
       // 最小サイズを保持しつつ、アスペクト比を維持
       final aspect = currentRect.width / currentRect.height;
-      final newSize = Size(math.max(MIN_SIZE, currentRect.width), math.max(MIN_SIZE, currentRect.height));
-      // 新しい終点を計算
-      newEndPoint = _startPoint + Offset(newSize.width, newSize.height);
+      double newWidth, newHeight;
+
+      if (currentRect.width < minSize) {
+        newWidth = minSize;
+        newHeight = minSize / aspect;
+      } else {
+        newHeight = minSize;
+        newWidth = minSize * aspect;
+      }
+
+      // 開始点からの相対位置で新しい終点を計算
+      final direction = (newEndPoint - _startPoint).direction;
+      newEndPoint = _startPoint + Offset(newWidth * math.cos(direction), newHeight * math.sin(direction));
     }
 
     updateEndPoint(newEndPoint);
