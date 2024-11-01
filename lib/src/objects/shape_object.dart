@@ -8,28 +8,37 @@ import 'drawable_object.dart';
 /// 図形オブジェクト
 ///
 /// 矩形や縁などの基本図形を表現するためのオブジェクトです。
+/// 図形は始点と終点から定義される矩形領域内に描画されます。
 class ShapeObject extends DrawableObject {
-  /// 始点
+  /// 図形の描画開始点（グローバル座標系）
   final Offset _startPoint;
   Offset get startPoint => _startPoint;
 
-  /// 終点
+  /// 図形の描画終点（グローバル座標系）
   Offset _endPoint;
   Offset get endPoint => _endPoint;
 
+  /// 図形のパスのキャッシュ
   Path? _shapePath;
 
+  /// ローカル座標系でのバウンディングボックスのキャッシュ
   Rect? _localBoundsCache;
 
-  /// 図形の種類
+  /// 図形の種類（矩形、円など）
   final ShapeType shapeType;
 
-  /// 描画スタイル
+  /// 描画スタイル（色、線幅など）
   Paint paint;
 
-  // 最小サイズの定数
+  // 図形の最小サイズ（ピクセル単位）
   static const double MIN_SIZE = 10.0;
 
+  /// コンストラクタ
+  ///
+  /// [startPoint] 図形の描画開始点（グローバル座標系）
+  /// [endPoint] 図形の描画終点（グローバル座標系）
+  /// [shapeType] 図形の種類
+  /// [paint] 描画スタイル
   ShapeObject({
     required Offset startPoint,
     required Offset endPoint,
@@ -88,30 +97,41 @@ class ShapeObject extends DrawableObject {
     }
   }
 
+  /// キャッシュされたパスを取得する
+  ///
+  /// パスが未作成の場合は新規作成します。
   Path _createPath() {
     _shapePath ??= _buildShapePath();
     return _shapePath!;
   }
 
+  /// 図形の種類に応じたパスを生成する
   Path _buildShapePath() {
     final path = Path();
+
+    // グローバル座標からローカル座標に変換
     final rect = Rect.fromPoints(_startPoint - globalCenter, _endPoint - globalCenter);
 
     switch (shapeType) {
       case ShapeType.rectangle:
         path.addRect(rect);
         break;
-      // case ShapeType.ellipse:
-      //   path.addOval(rect);
-      //   break;
-      // 他の図形タイプも同様に実装
+      case ShapeType.circle:
+        // 円は矩形に内接する楕円として描画
+        path.addOval(rect);
+        break;
       default:
+        // 未知の図形タイプの場合は空のパスを返す
         break;
     }
 
     return path;
   }
 
+  /// 図形の終点を更新する
+  ///
+  /// 最小サイズの制約を適用し、必要に応じて縦横比を維持します。
+  /// [newEndPoint] 新しい終点座標
   void updateShape(Offset newEndPoint) {
     // 最小サイズを確保
     final currentRect = Rect.fromPoints(_startPoint, newEndPoint);
@@ -126,6 +146,10 @@ class ShapeObject extends DrawableObject {
     updateEndPoint(newEndPoint);
   }
 
+  /// 図形の終点を直接更新する
+  ///
+  /// キャッシュを無効化し、オブジェクトの中心位置を更新します。
+  /// [newEndPoint] 新しい終点座標
   void updateEndPoint(Offset newEndPoint) {
     _endPoint = newEndPoint;
     _shapePath = null;
