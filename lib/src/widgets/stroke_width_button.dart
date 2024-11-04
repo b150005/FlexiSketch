@@ -83,7 +83,7 @@ class _StrokeWidthButtonState extends State<StrokeWidthButton> {
     );
   }
 
-  /// オーバーレイの表示/非表示を切り替える
+  /// オーバーレイを切り替える
   void _toggleOverlay() {
     if (_overlayEntry == null) {
       _showOverlay();
@@ -106,59 +106,90 @@ class _StrokeWidthButtonState extends State<StrokeWidthButton> {
 
   /// オーバーレイエントリを作成する
   OverlayEntry _createOverlayEntry() {
-    // スライダーの高さを考慮したオフセット
-    const overlayHeight = 100.0; // スライダーコンテナの概算高さ
-    const padding = 8.0; // 余白
+    const overlayWidth = 240.0;
+    const overlayHeight = 100.0;
+    const padding = 8.0;
+
+    // 画面サイズを取得
+    final screenSize = MediaQuery.of(context).size;
+
+    // ボタンの位置情報を取得
+    final box = context.findRenderObject() as RenderBox;
+    final buttonSize = box.size;
+    final buttonPosition = box.localToGlobal(Offset.zero);
+
+    // スライダーを表示する方向を決定（右端からの距離が overlayWidth の半分より小さい場合は左に表示）
+    final showToLeft = (screenSize.width - buttonPosition.dx) < overlayWidth / 2;
+
+    // オフセットを計算
+    final double dx = showToLeft
+        ? -(overlayWidth - buttonSize.width) // 左寄せ
+        : -(overlayWidth - buttonSize.width) / 2; // 中央寄せ
 
     return OverlayEntry(
-      builder: (context) => UnconstrainedBox(
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          // ボタンの上に表示されるように位置を調整
-          offset: const Offset(0, -(overlayHeight + padding)),
-          child: Material(
-            elevation: 8,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).canvasColor,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              width: 240,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.line_weight, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        _currentWidth.round().toString(),
-                        style: Theme.of(context).textTheme.bodyMedium,
+      builder: (context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _removeOverlay,
+        child: Container(
+          color: Colors.transparent,
+          child: Stack(
+            children: [
+              Positioned(
+                left: buttonPosition.dx + dx,
+                top: buttonPosition.dy - overlayHeight - padding,
+                child: GestureDetector(
+                  onTap: () {}, // バブリングを防止
+                  child: Material(
+                    elevation: 8,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.grey.withOpacity(0.2),
+                          width: 1,
+                        ),
                       ),
-                    ],
+                      width: overlayWidth,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.line_weight, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                _currentWidth.round().toString(),
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                          StatefulBuilder(
+                            builder: (context, setStateSlider) {
+                              return Slider(
+                                value: _currentWidth,
+                                min: 1,
+                                max: 20,
+                                divisions: 19,
+                                label: _currentWidth.round().toString(),
+                                onChanged: (value) {
+                                  setStateSlider(() {
+                                    _currentWidth = value;
+                                  });
+                                  widget.onChanged(value);
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  StatefulBuilder(
-                    builder: (context, setStateSlider) {
-                      return Slider(
-                        value: _currentWidth,
-                        min: 1,
-                        max: 20,
-                        divisions: 19,
-                        label: _currentWidth.round().toString(),
-                        onChanged: (value) {
-                          setStateSlider(() {
-                            _currentWidth = value;
-                          });
-                          widget.onChanged(value);
-                        },
-                      );
-                    },
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

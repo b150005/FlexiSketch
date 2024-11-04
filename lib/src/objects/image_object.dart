@@ -11,17 +11,27 @@ class ImageObject extends DrawableObject {
   /// 画像データ
   final ui.Image image;
 
+  /// 画像のエンコードされたデータ
+  final String? _encodedImageData;
+  String get encodedImageData => _encodedImageData ?? '';
+
   final Paint paint;
 
   final Size _size;
+
+  /// 画像のサイズを取得する
+  Size get size => _size;
 
   Rect? _localBoundsCache;
 
   ImageObject({
     required this.image,
     required super.globalCenter,
+    required Size? size,
+    String? encodedImageData,
     Paint? paint,
-  })  : _size = Size(image.width.toDouble(), image.height.toDouble()),
+  })  : _size = size ?? Size(image.width.toDouble(), image.height.toDouble()),
+        _encodedImageData = encodedImageData,
         paint = paint ?? Paint();
 
   @override

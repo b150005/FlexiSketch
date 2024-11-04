@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flexi_sketch/src/services/clipboard_service.dart';
+import 'package:flexi_sketch/src/storage/storage_features.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -13,14 +14,22 @@ import 'src/objects/shape_object.dart';
 import 'src/tools/drawing_tool.dart';
 import 'src/tools/shape_tool.dart';
 
-class FlexiSketchController extends ChangeNotifier {
+class FlexiSketchController extends ChangeNotifier with StorageFeatures {
   /// 選択中の描画ツール
   DrawingTool? _currentTool;
   DrawingTool? get currentTool => _currentTool;
 
   /// キャンバス上の描画オブジェクトのリスト
   final List<DrawableObject> _objects = [];
+
+  @override
   List<DrawableObject> get objects => _objects;
+
+  @override
+  set objects(List<DrawableObject> value) {
+    _objects.clear();
+    _objects.addAll(value);
+  }
 
   /// 描画色
   Color _currentColor = Colors.black;
@@ -421,7 +430,12 @@ class FlexiSketchController extends ChangeNotifier {
       final frame = await codec.getNextFrame();
       final image = frame.image;
 
-      final imageObject = ImageObject(image: image, globalCenter: _getCanvasCenter());
+      final size = Size(image.width.toDouble(), image.height.toDouble());
+      final imageObject = ImageObject(
+        image: image,
+        globalCenter: _getCanvasCenter(),
+        size: size,  // サイズを明示的に指定
+      );
 
       _addToHistory(HistoryEntryType.paste);
       _objects.add(imageObject);
