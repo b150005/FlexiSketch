@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import '../serialization/object_serializer.dart';
+import '../serialization/serializers/path_object_serializer.dart';
 import 'drawable_object.dart';
 
 /// パス(線)オブジェクト
@@ -26,6 +28,12 @@ class PathObject extends DrawableObject {
   PathObject({required Path inputPath, required this.paint})
       : _path = _centerPath(inputPath),
         super(globalCenter: inputPath.getBounds().center);
+
+  @override
+  String get type => 'path';
+
+  @override
+  ObjectSerializer get serializer => PathObjectSerializer.instance;
 
   @override
   Rect get localBounds {
@@ -79,6 +87,14 @@ class PathObject extends DrawableObject {
     } catch (e) {
       return true;
     }
+  }
+
+  /// シリアライズ用のメソッド
+  @override
+  Map<String, dynamic> toSerializableMap() {
+    final map = super.toSerializableMap();
+    // パス固有のプロパティは PathObjectSerializer で処理
+    return map;
   }
 
   /// 入力パスを中心基準のローカル座標系に変換する

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../serialization/object_serializer.dart';
+import '../serialization/serializers/shape_object_serializer.dart';
 import '../tools/shape_tool.dart';
 import 'drawable_object.dart';
 
@@ -47,6 +49,12 @@ class ShapeObject extends DrawableObject {
   })  : _startPoint = startPoint,
         _endPoint = endPoint,
         super(globalCenter: Rect.fromPoints(startPoint, endPoint).center);
+
+  @override
+  String get type => 'shape';
+
+  @override
+  ObjectSerializer get serializer => ShapeObjectSerializer.instance;
 
   @override
   Rect get localBounds {
@@ -95,6 +103,29 @@ class ShapeObject extends DrawableObject {
     } catch (e) {
       return true;
     }
+  }
+
+  /// シリアライズ用のメソッド
+  @override
+  Map<String, dynamic> toSerializableMap() {
+    final map = super.toSerializableMap();
+    map['shape'] = {
+      'startPoint': {
+        'x': _startPoint.dx,
+        'y': _startPoint.dy,
+      },
+      'endPoint': {
+        'x': _endPoint.dx,
+        'y': _endPoint.dy,
+      },
+      'shapeType': shapeType.toString(),
+      'paint': {
+        'color': paint.color.value,
+        'strokeWidth': paint.strokeWidth,
+        'blendMode': paint.blendMode.toString(),
+      },
+    };
+    return map;
   }
 
   /// キャッシュされたパスを取得する

@@ -1,45 +1,49 @@
-import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
 import '../../objects/image_object.dart';
+import '../../utils/image_utils.dart';
 import '../object_serializer.dart';
 
 /// ImageObjectのシリアライズを担当するクラス
-class ImageObjectSerializer extends ObjectSerializer<ImageObject> {
-  const ImageObjectSerializer();
+class ImageObjectSerializer implements ObjectSerializer<ImageObject> {
+  static const ImageObjectSerializer instance = ImageObjectSerializer._();
 
-  static const _instance = ImageObjectSerializer();
-  static ImageObjectSerializer get instance => _instance;
+  const ImageObjectSerializer._();
 
   @override
-  Map<String, Object> toJson(ImageObject object) {
-    return {
-      'imageBytes': object.encodedImageData,
-      'size': <String, Object>{
-        'width': object.size.width,
-        'height': object.size.height,
-      },
-    };
+  Future<ImageObject> fromJson(Map<String, dynamic> json) async {
+    final imageData = json['image'] as Map<String, dynamic>;
+    final encodedData = imageData['data'] as String;
+
+    final size = Size(
+      imageData['size']['width'] as double,
+      imageData['size']['height'] as double,
+    );
+
+    // Base64エンコードされた画像データをデコード
+    final ui.Image image = await ImageUtils.decodeBase64Image(encodedData);
+
+    return ImageObject(
+      image: image,
+      size: size,
+      globalCenter: Offset.zero, // DrawableObjectのfromSerializableMapで上書きする
+    );
   }
 
   @override
-  Future<ImageObject> fromJson(Map<String, Object> json) async {
-    final imageBytes = base64Decode(json['imageBytes'] as String);
-    final sizeData = json['size'] as Map<String, Object>;
-    final size = Size(
-      sizeData['width'] as double,
-      sizeData['height'] as double,
-    );
+  Future<Map<String, dynamic>> toJson(ImageObject object) async {
+    final encodedData = await ImageUtils.encodeImageToBase64(object.image);
 
-    final codec = await ui.instantiateImageCodec(imageBytes);
-    final frame = await codec.getNextFrame();
-
-    return ImageObject(
-      image: frame.image,
-      globalCenter: Offset.zero,
-      size: size,
-    );
+    return {
+      'image': {
+        'data': encodedData,
+        'size': {
+          'width': object.size.width,
+          'height': object.size.height,
+        },
+      },
+    };
   }
 }

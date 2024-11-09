@@ -1,47 +1,70 @@
 import 'package:flutter/material.dart';
-import 'package:path_drawing/path_drawing.dart';
 
 import '../../objects/path_object.dart';
 import '../object_serializer.dart';
 
 /// PathObjectのシリアライズを担当するクラス
-class PathObjectSerializer extends ObjectSerializer<PathObject> {
-  const PathObjectSerializer();
+class PathObjectSerializer implements ObjectSerializer<PathObject> {
+  static const PathObjectSerializer instance = PathObjectSerializer._();
 
-  static const _instance = PathObjectSerializer();
-  static PathObjectSerializer get instance => _instance;
-
-  @override
-  Map<String, Object> toJson(PathObject object) {
-    return {
-      'path': object.path.toString(),
-      'paint': <String, Object>{
-        'color': object.paint.color.value,
-        'strokeWidth': object.paint.strokeWidth,
-        'style': object.paint.style.index,
-        'strokeCap': object.paint.strokeCap.index,
-        'strokeJoin': object.paint.strokeJoin.index,
-        'blendMode': object.paint.blendMode.index,
-      },
-    };
-  }
+  const PathObjectSerializer._();
 
   @override
-  PathObject fromJson(Map<String, Object> json) {
-    final path = parseSvgPathData(json['path'] as String);
-    final paintData = json['paint'] as Map<String, Object>;
+  Future<PathObject> fromJson(Map<String, dynamic> json) async {
+    final pathData = json['path'] as Map<String, dynamic>;
+    final points = (pathData['points'] as List<dynamic>)
+        .map((point) => Offset(
+              point['x'] as double,
+              point['y'] as double,
+            ))
+        .toList();
+
+    final path = Path();
+    if (points.isNotEmpty) {
+      path.moveTo(points[0].dx, points[0].dy);
+      for (final point in points.skip(1)) {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
 
     final paint = Paint()
-      ..color = Color(paintData['color'] as int)
-      ..strokeWidth = paintData['strokeWidth'] as double
-      ..style = PaintingStyle.values[paintData['style'] as int]
-      ..strokeCap = StrokeCap.values[paintData['strokeCap'] as int]
-      ..strokeJoin = StrokeJoin.values[paintData['strokeJoin'] as int]
-      ..blendMode = BlendMode.values[paintData['blendMode'] as int];
+      ..color = Color(pathData['paint']['color'] as int)
+      ..strokeWidth = pathData['paint']['strokeWidth'] as double
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
     return PathObject(
       inputPath: path,
       paint: paint,
     );
+  }
+
+  @override
+  Map<String, dynamic> toJson(PathObject object) {
+    final pathMetrics = object.path.computeMetrics();
+    final points = <Map<String, double>>[];
+
+    for (final metric in pathMetrics) {
+      for (double distance = 0; distance <= metric.length; distance += 1) {
+        final pos = metric.getTangentForOffset(distance)?.position;
+        if (pos != null) {
+          points.add({
+            'x': pos.dx,
+            'y': pos.dy,
+          });
+        }
+      }
+    }
+
+    return {
+      'path': {
+        'points': points,
+        'paint': {
+          'color': object.paint.color.value,
+          'strokeWidth': object.paint.strokeWidth,
+        },
+      },
+    };
   }
 }

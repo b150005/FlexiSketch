@@ -5,14 +5,29 @@
 // platforms in the `pubspec.yaml` at
 // https://flutter.dev/to/pubspec-plugin-platforms.
 
-library flexi_sketch;
-
 import 'flexi_sketch_platform_interface.dart';
 
+// Widget
 export 'src/widgets/flexi_sketch_widget.dart';
+
+// Controller
 export 'flexi_sketch_controller.dart';
 
+// Handler
+export 'src/handlers/save_handler.dart';
+
+/// シリアライザ
+export 'src/serialization/serializers/drawable_object_serializer.dart' show DrawableObjectSerializer;
+
+// SketchStorageとその関連クラス
+export 'src/storage/sketch_storage.dart' show SketchStorage, SketchData, SketchMetadata;
+
+// サムネイル生成機能
+export 'src/storage/thumbnail_generator.dart' show ThumbnailGenerator, DefaultThumbnailGenerator;
+
+/// FlexiSketchプラグインのプラットフォーム固有の機能を提供するクラス
 class FlexiSketch {
+  /// 現在のプラットフォームのバージョン情報を取得します
   Future<String?> getPlatformVersion() {
     return FlexiSketchPlatform.instance.getPlatformVersion();
   }

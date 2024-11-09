@@ -6,11 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'src/errors/flexi_sketch_error.dart';
+import 'src/handlers/save_handler.dart';
 import 'src/history/history_entry.dart';
 import 'src/objects/drawable_object.dart';
 import 'src/objects/image_object.dart';
 import 'src/objects/path_object.dart';
 import 'src/objects/shape_object.dart';
+import 'src/serialization/serializers/drawable_object_serializer.dart';
 import 'src/tools/drawing_tool.dart';
 import 'src/tools/shape_tool.dart';
 
@@ -68,13 +71,32 @@ class FlexiSketchController extends ChangeNotifier with StorageFeatures {
   /// 選択中のオブジェクトが画像かどうか
   bool get isImageSelected => _selectedObject is ImageObject;
 
-  /// エラー通知用のコールバック関数
-  void Function(String message)? _onError;
+  /// スケッチを画像として保存する処理
+  SaveSketchAsImage? _saveAsImage;
 
-  /// エラーハンドラを設定する
-  set onError(void Function(String message)? handler) {
-    _onError = handler;
+  /// スケッチを画像として保存する処理を設定します
+  set saveAsImage(SaveSketchAsImage? handler) {
+    _saveAsImage = handler;
+    notifyListeners();
   }
+
+  /// 画像保存が可能かどうかを返します
+  bool get canSaveAsImage => _saveAsImage != null;
+
+  /// スケッチをデータとして保存する処理
+  SaveSketchAsData? _saveAsData;
+
+  /// スケッチをデータとして保存する処理を設定します
+  set saveAsData(SaveSketchAsData? handler) {
+    _saveAsData = handler;
+    notifyListeners();
+  }
+
+  /// データ保存が可能かどうかを返します
+  bool get canSaveAsData => _saveAsData != null;
+
+  /// エラー通知用のコールバック関数
+  void Function(String message)? onError;
 
   /// キャンバスのサイズ
   Size? _canvasSize;
@@ -385,7 +407,7 @@ class FlexiSketchController extends ChangeNotifier with StorageFeatures {
 
   /// エラーメッセージを通知する
   void _notifyError(String message) {
-    _onError?.call(message);
+    onError?.call(message);
   }
 
   /// 画像ファイルを選択してキャンバスに追加する
@@ -434,7 +456,7 @@ class FlexiSketchController extends ChangeNotifier with StorageFeatures {
       final imageObject = ImageObject(
         image: image,
         globalCenter: _getCanvasCenter(),
-        size: size,  // サイズを明示的に指定
+        size: size, // サイズを明示的に指定
       );
 
       _addToHistory(HistoryEntryType.paste);
@@ -453,5 +475,157 @@ class FlexiSketchController extends ChangeNotifier with StorageFeatures {
     }
 
     return Offset(_canvasSize!.width / 2, _canvasSize!.height / 2);
+  }
+
+  /// スケッチを画像として保存する
+  ///
+  /// 内部で画像データを生成し、[_saveAsImage]で指定された処理を実行します。
+  /// 保存処理が設定されていない場合は [SaveHandlerNotSetError] をスローします。
+  /// 画像生成に失敗した場合は [ImageGenerationError] をスローします。
+  /// その他のエラーが発生した場合は [SaveError] をスローします。
+  Future<void> handleSaveAsImage() async {
+    if (_saveAsImage == null) {
+      throw const SaveHandlerNotSetError('image');
+    }
+
+    try {
+      final imageData = await _generateImageData();
+      await _saveAsImage!(imageData);
+    } on ImageGenerationError {
+      rethrow;
+    } catch (e) {
+      throw SaveError('Failed to save as image', e);
+    }
+  }
+
+  /// スケッチをデータとして保存する
+  ///
+  /// 内部でデータを生成し、[_saveAsData]で指定された処理を実行します。
+  /// 保存処理が設定されていない場合は [SaveHandlerNotSetError] をスローします。
+  /// データ生成に失敗した場合は [DataGenerationError] をスローします。
+  /// その他のエラーが発生した場合は [SaveError] をスローします。
+  Future<void> handleSaveAsData() async {
+    if (_saveAsData == null) {
+      throw const SaveHandlerNotSetError('data');
+    }
+
+    try {
+      final data = await _generateData();
+      await _saveAsData!(data);
+    } on DataGenerationError {
+      rethrow;
+    } catch (e) {
+      throw SaveError('Failed to save as data', e);
+    }
+  }
+
+  /// キャンバスのバウンディングボックスを計算する
+  ///
+  /// すべての描画オブジェクトを含む最小の矩形を計算します。
+  /// マージンを指定することで、オブジェクトの周囲に余白を設けることができます。
+  Rect _calculateContentBounds([double margin = 32.0]) {
+    if (_objects.isEmpty) {
+      // オブジェクトがない場合はキャンバスサイズを基準に
+      return Rect.fromLTWH(
+        0,
+        0,
+        _canvasSize?.width ?? 800,
+        _canvasSize?.height ?? 600,
+      );
+    }
+
+    // 全オブジェクトのバウンディングボックスを統合
+    Rect bounds = _objects.first.bounds;
+    for (final object in _objects.skip(1)) {
+      bounds = bounds.expandToInclude(object.bounds);
+    }
+
+    // 描画中のオブジェクトがあれば含める
+    if (_currentPath != null) {
+      bounds = bounds.expandToInclude(_currentPath!.bounds);
+    }
+    if (_currentShape != null) {
+      bounds = bounds.expandToInclude(_currentShape!.bounds);
+    }
+
+    // マージンを追加
+    return Rect.fromLTWH(
+      bounds.left - margin,
+      bounds.top - margin,
+      bounds.width + margin * 2,
+      bounds.height + margin * 2,
+    );
+  }
+
+  /// キャンバスの内容を画像データとして生成します
+  Future<Uint8List> _generateImageData() async {
+    try {
+      // コンテンツの範囲を計算（マージン付き）
+      final contentBounds = _calculateContentBounds();
+
+      // 描画用のPictureRecorderを作成
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+
+      // 背景を描画（白色）
+      canvas.drawRect(
+        Offset.zero & contentBounds.size,
+        Paint()..color = Colors.white,
+      );
+
+      // コンテンツの位置を調整
+      canvas.translate(-contentBounds.left, -contentBounds.top);
+
+      // すべてのオブジェクトを描画
+      for (final object in _objects) {
+        object.draw(canvas);
+      }
+
+      // 描画中のオブジェクトがあれば描画
+      if (_currentPath != null) {
+        _currentPath!.draw(canvas);
+      }
+      if (_currentShape != null) {
+        _currentShape!.draw(canvas);
+      }
+
+      // Pictureを完成させる
+      final picture = recorder.endRecording();
+
+      // 画像に変換
+      final image = await picture.toImage(
+        contentBounds.width.round(),
+        contentBounds.height.round(),
+      );
+
+      // バイトデータに変換
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        throw const ImageGenerationError('Failed to convert image to byte data');
+      }
+
+      return byteData.buffer.asUint8List();
+    } catch (e) {
+      throw ImageGenerationError('Failed to generate image data', e);
+    }
+  }
+
+  /// キャンバスの内容をデータとして生成します
+  Future<Map<String, dynamic>> _generateData() async {
+    try {
+      // 各オブジェクトのシリアライズを並行処理
+      final serializedObjects = await Future.wait(_objects.map((obj) => DrawableObjectSerializer.instance.toJson(obj)));
+
+      return {
+        'version': 1,
+        'canvas': {
+          'width': _canvasSize?.width ?? 0,
+          'height': _canvasSize?.height ?? 0,
+        },
+        'objects': serializedObjects,
+      };
+    } catch (e) {
+      throw DataGenerationError('Failed to generate sketch data', e);
+    }
   }
 }

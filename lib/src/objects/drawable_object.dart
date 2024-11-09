@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../serialization/object_serializer.dart';
+import '../serialization/serializer.dart';
+
 /// 描画可能なオブジェクトの基底クラス
 ///
 /// すべての描画可能なオブジェクト(パス、図形、画像)に共通する機能を提供します。
 /// 移動、回転、スケール(拡大・縮小)、削除などの基本的な変換操作と、選択状態の管理を行います。
-abstract class DrawableObject {
+abstract class DrawableObject implements Serializable {
   /// オブジェクトが選択されているかどうか
   bool isSelected = false;
 
@@ -34,6 +37,14 @@ abstract class DrawableObject {
     this.rotation = 0.0,
     this.scale = 1.0,
   });
+
+  /// オブジェクトの種類を表す文字列
+  @override
+  String get type;
+
+  /// オブジェクト固有のシリアライザを取得します
+  @override
+  ObjectSerializer get serializer;
 
   /// オブジェクト自身のローカル座標系でのバウンディングボックスを取得する
   ///
@@ -231,5 +242,28 @@ abstract class DrawableObject {
   void _invalidateTransform() {
     _transformCache = null;
     _inverseTransformCache = null;
+  }
+
+  /// オブジェクトをシリアライズするためのデータを取得する
+  Map<String, dynamic> toSerializableMap() {
+    return {
+      'globalCenter': {
+        'x': globalCenter.dx,
+        'y': globalCenter.dy,
+      },
+      'rotation': rotation,
+      'scale': scale,
+    };
+  }
+
+  /// シリアライズされたデータからオブジェクトのプロパティを設定する
+  void fromSerializableMap(Map<String, dynamic> map) {
+    globalCenter = Offset(
+      map['globalCenter']['x'] as double,
+      map['globalCenter']['y'] as double,
+    );
+    rotation = map['rotation'] as double;
+    scale = map['scale'] as double;
+    _invalidateTransform();
   }
 }

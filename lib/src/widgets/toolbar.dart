@@ -5,6 +5,7 @@ import '../tools/eraser_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/shape_tool.dart';
 import 'color_button.dart';
+import 'save_dialog.dart';
 import 'stroke_width_button.dart';
 import 'tool_button.dart';
 
@@ -23,23 +24,23 @@ class Toolbar extends StatefulWidget {
   /// ツールバーの表示状態を変更するコールバック
   final ValueChanged<bool>? onVisibilityChanged;
 
-  /// 保存ボタンが押されたときのコールバック
-  final VoidCallback? onSave;
-
-  /// 開くボタンが押されたときのコールバック
-  final VoidCallback? onOpen;
-
+  /// ツールバーウィジェットを作成します。
+  ///
+  /// [controller] は必須で、スケッチの状態管理を行います。
+  /// [isVisible] はツールバーの表示状態を制御します。
+  /// [onVisibilityChanged] はツールバーの表示状態が変更されたときに呼び出されます。
   const Toolbar({
     super.key,
     required this.controller,
     this.isVisible = true,
     this.onVisibilityChanged,
-    this.onSave,
-    this.onOpen,
   });
 
   @override
   State<Toolbar> createState() => _ToolbarState();
+
+  /// 保存機能が有効かどうか
+  bool get hasSaveFeature => controller.canSaveAsImage || controller.canSaveAsData;
 }
 
 class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
@@ -185,19 +186,14 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildToolGroup([
-            ToolButton(
-              icon: Icons.save,
-              tooltip: '保存',
-              onPressed: widget.onSave,
-            ),
-            ToolButton(
-              icon: Icons.folder_open,
-              tooltip: '開く',
-              onPressed: widget.onOpen,
-            ),
-          ]),
-          _buildVerticalDivider(),
+          if (widget.hasSaveFeature)
+            _buildToolGroup([
+              ToolButton(
+                icon: Icons.save,
+                tooltip: '保存',
+                onPressed: _handleSave,
+              ),
+            ]),
           _buildToolGroup([
             ToolButton(
               icon: Icons.upload_file,
@@ -366,6 +362,22 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  /// 保存ダイアログを表示し、保存処理を実行します
+  ///
+  /// エラー処理は `SaveDialog` 側で行います。
+  Future<void> _handleSave() async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => SaveDialog(controller: widget.controller),
+    );
+
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('保存しました')),
+      );
+    }
   }
 
   void _toggleColorPicker() {

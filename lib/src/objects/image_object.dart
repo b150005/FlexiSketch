@@ -2,6 +2,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../serialization/object_serializer.dart';
+import '../serialization/serializers/image_object_serializer.dart';
 import 'drawable_object.dart';
 
 /// 画像オブジェクト
@@ -10,10 +12,6 @@ import 'drawable_object.dart';
 class ImageObject extends DrawableObject {
   /// 画像データ
   final ui.Image image;
-
-  /// 画像のエンコードされたデータ
-  final String? _encodedImageData;
-  String get encodedImageData => _encodedImageData ?? '';
 
   final Paint paint;
 
@@ -28,11 +26,15 @@ class ImageObject extends DrawableObject {
     required this.image,
     required super.globalCenter,
     required Size? size,
-    String? encodedImageData,
     Paint? paint,
   })  : _size = size ?? Size(image.width.toDouble(), image.height.toDouble()),
-        _encodedImageData = encodedImageData,
         paint = paint ?? Paint();
+
+  @override
+  String get type => 'image';
+
+  @override
+  ObjectSerializer get serializer => ImageObjectSerializer.instance;
 
   @override
   Rect get localBounds {
@@ -77,5 +79,18 @@ class ImageObject extends DrawableObject {
   bool checkContainsPoint(Offset localPoint) {
     // 画像は矩形として判定
     return localBounds.contains(localPoint);
+  }
+
+  /// シリアライズ用のメソッド
+  @override
+  Map<String, dynamic> toSerializableMap() {
+    final map = super.toSerializableMap();
+    map['image'] = {
+      'size': {
+        'width': _size.width,
+        'height': _size.height,
+      },
+    };
+    return map;
   }
 }

@@ -4,7 +4,21 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../objects/drawable_object.dart';
-import 'sketch_storage.dart';
+
+/// スケッチのサムネイル生成方法を定義するインターフェース
+abstract class ThumbnailGenerator {
+  /// プレビュー画像を生成する
+  ///
+  /// [objects] サムネイルを生成する対象のオブジェクトリスト
+  /// [size] 生成するサムネイルのサイズ
+  Future<Uint8List> generatePreview(List<DrawableObject> objects, Size size);
+
+  /// サムネイル画像を生成する
+  ///
+  /// [objects] サムネイルを生成する対象のオブジェクトリスト
+  /// [size] 生成するサムネイルのサイズ
+  Future<Uint8List> generateThumbnail(List<DrawableObject> objects, Size size);
+}
 
 class DefaultThumbnailGenerator implements ThumbnailGenerator {
   @override
