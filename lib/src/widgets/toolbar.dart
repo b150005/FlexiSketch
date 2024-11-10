@@ -116,58 +116,53 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: SafeArea(
-        child: AnimatedBuilder(
-          animation: _fadeAnimation,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(0, 100 * (1 - _fadeAnimation.value)),
-              child: Opacity(
-                opacity: _fadeAnimation.value,
-                child: child,
-              ),
-            );
-          },
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {}, // ジェスチャーをここで止める
-            child: Container(
-              margin: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: MediaQuery.of(context).size.height > 600 ? 16 : 8,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 12,
-                    offset: const Offset(0, -2),
-                  ),
+    return SafeArea(
+      child: AnimatedBuilder(
+        animation: _fadeAnimation,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, 100 * (1 - _fadeAnimation.value)),
+            child: Opacity(
+              opacity: _fadeAnimation.value,
+              child: child,
+            ),
+          );
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {}, // ジェスチャーをここで止める
+          child: Container(
+            margin: EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: MediaQuery.of(context).size.height > 600 ? 16 : 8,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildToolbarHandle(),
+                const SizedBox(height: 12),
+                _buildFileTools(),
+                const SizedBox(height: 12),
+                _buildDrawingTools(),
+                if (_isColorPickerExpanded) ...[
+                  const SizedBox(height: 12),
+                  _buildColorPalette(),
                 ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildToolbarHandle(),
-                  const SizedBox(height: 12),
-                  _buildFileTools(),
-                  const SizedBox(height: 12),
-                  _buildDrawingTools(),
-                  if (_isColorPickerExpanded) ...[
-                    const SizedBox(height: 12),
-                    _buildColorPalette(),
-                  ],
-                  const SizedBox(height: 12),
-                  _buildEditingTools(),
-                ],
-              ),
+                const SizedBox(height: 12),
+                _buildEditingTools(),
+              ],
             ),
           ),
         ),

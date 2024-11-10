@@ -95,13 +95,15 @@ class _FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHand
               ),
               // ツールバー
               Positioned(
+                left: 0,
                 right: 0,
-                top: 0,
                 bottom: 0,
-                child: Toolbar(
-                  controller: _controller,
-                  onSaveAsImage: widget.onSaveAsImage,
-                  onSaveAsData: widget.onSaveAsData,
+                child: Center(
+                  child: Toolbar(
+                    controller: _controller,
+                    onSaveAsImage: widget.onSaveAsImage,
+                    onSaveAsData: widget.onSaveAsData,
+                  ),
                 ),
               ),
             ],
