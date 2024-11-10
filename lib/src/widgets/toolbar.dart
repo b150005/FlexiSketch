@@ -5,7 +5,7 @@ import '../tools/eraser_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/shape_tool.dart';
 import 'color_button.dart';
-import 'save_dialog.dart';
+import 'file_menu_button.dart';
 import 'stroke_width_button.dart';
 import 'tool_button.dart';
 
@@ -188,10 +188,9 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         children: [
           if (widget.hasSaveFeature)
             _buildToolGroup([
-              ToolButton(
-                icon: Icons.save,
-                tooltip: '保存',
-                onPressed: _handleSave,
+              FileMenuButton(
+                controller: widget.controller,
+                onError: widget.controller.onError,
               ),
             ]),
           _buildToolGroup([
@@ -362,22 +361,6 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         ),
       ),
     );
-  }
-
-  /// 保存ダイアログを表示し、保存処理を実行します
-  ///
-  /// エラー処理は `SaveDialog` 側で行います。
-  Future<void> _handleSave() async {
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (context) => SaveDialog(controller: widget.controller),
-    );
-
-    if (saved == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('保存しました')),
-      );
-    }
   }
 
   void _toggleColorPicker() {

@@ -35,27 +35,16 @@ class TestScreen extends StatefulWidget {
 
 class _TestScreenState extends State<TestScreen> {
   final FlexiSketchController _controller = FlexiSketchController();
-  String? _lastSavedPath;
   String? _lastSavedJson;
 
   @override
   void initState() {
     super.initState();
-    _initializeStorage();
+    _initializeController();
   }
 
-  void _initializeStorage() {
-    // TODO: iOS/Android での検証(ローカルストレージ)
-    // _controller.setStorage(LocalTestStorage(
-    //   onSave: (path, json) {
-    //     setState(() {
-    //       _lastSavedPath = path;
-    //       _lastSavedJson = json;
-    //     });
-    //   },
-    // ));
-
-    // TODO: 全プラットフォームでの検証(インメモリストレージ)
+  void _initializeController() {
+    // インメモリストレージを設定
     _controller.setStorage(InMemoryTestStorage(
       onSave: (json) {
         setState(() {
@@ -64,6 +53,19 @@ class _TestScreenState extends State<TestScreen> {
       },
     ));
 
+    // 画像として保存する機能を設定
+    _controller.saveAsImage = (imageData) async {
+      // 実際のアプリケーションでは、ここで画像の保存処理を実装します
+      print('Image data size: ${imageData.length} bytes');
+    };
+
+    // データとして保存する機能を設定
+    _controller.saveAsData = (data) async {
+      // 実際のアプリケーションでは、ここでデータの保存処理を実装します
+      print('Data saved: ${data.length} items');
+    };
+
+    // エラーハンドリング
     _controller.onError = (message) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
@@ -77,41 +79,14 @@ class _TestScreenState extends State<TestScreen> {
       body: Row(
         children: [
           Expanded(
-            flex: 3,
             child: FlexiSketchWidget(controller: _controller),
           ),
-          const VerticalDivider(width: 1),
-          SizedBox(
-            width: 300,
-            child: Column(
-              // Paddingを削除してColumnに直接
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ElevatedButton(
-                        onPressed: _saveAsImage,
-                        child: const Text('画像として保存'),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: _saveAsData,
-                        child: const Text('データとして保存'),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: _loadLatest,
-                        child: const Text('最後に保存したデータを読み込む'),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text('最後に保存したファイル:'),
-                      Text(_lastSavedPath ?? 'なし', style: const TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-                if (_lastSavedJson != null)
+          if (_lastSavedJson != null) ...[
+            const VerticalDivider(width: 1),
+            SizedBox(
+              width: 300,
+              child: Column(
+                children: [
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -151,9 +126,7 @@ class _TestScreenState extends State<TestScreen> {
                             child: SingleChildScrollView(
                               padding: const EdgeInsets.all(8.0),
                               child: SelectableText(
-                                const JsonEncoder.withIndent('  ').convert(
-                                  json.decode(_lastSavedJson!),
-                                ),
+                                const JsonEncoder.withIndent('  ').convert(json.decode(_lastSavedJson!)),
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontFamily: 'monospace',
@@ -166,43 +139,28 @@ class _TestScreenState extends State<TestScreen> {
                       ),
                     ),
                   ),
-              ],
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          if (_controller.metadata != null) {
+                            await _controller.loadSketch(_controller.metadata!.id);
+                          }
+                        } catch (e) {
+                          _controller.onError?.call(e.toString());
+                        }
+                      },
+                      child: const Text('最後に保存したデータを読み込む'),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
-  }
-
-  Future<void> _saveAsImage() async {
-    try {
-      await _controller.saveSketch(
-        asImage: true,
-        title: 'Test Image ${DateTime.now().toString()}',
-      );
-    } catch (e) {
-      _controller.onError?.call(e.toString());
-    }
-  }
-
-  Future<void> _saveAsData() async {
-    try {
-      await _controller.saveSketch(
-        title: 'Test Data ${DateTime.now().toString()}',
-      );
-    } catch (e) {
-      _controller.onError?.call(e.toString());
-    }
-  }
-
-  Future<void> _loadLatest() async {
-    try {
-      if (_controller.metadata != null) {
-        await _controller.loadSketch(_controller.metadata!.id);
-      }
-    } catch (e) {
-      _controller.onError?.call(e.toString());
-    }
   }
 }
 
