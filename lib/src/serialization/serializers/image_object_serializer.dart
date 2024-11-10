@@ -28,7 +28,7 @@ class ImageObjectSerializer implements ObjectSerializer<ImageObject> {
     return ImageObject(
       image: image,
       size: size,
-      globalCenter: Offset.zero, // DrawableObjectのfromSerializableMapで上書きする
+      globalCenter: Offset.zero,
     );
   }
 

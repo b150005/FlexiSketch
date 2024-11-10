@@ -571,7 +571,6 @@ class FlexiSketchController extends ChangeNotifier {
     try {
       _objects.clear();
 
-      // TODO: JSONからオブジェクトを復元する処理の実装
       // キャンバスサイズの復元
       final canvas = json['canvas'] as Map<String, dynamic>;
       _canvasSize = Size(
