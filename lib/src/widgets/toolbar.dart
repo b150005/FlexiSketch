@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
+import '../handlers/save_handler.dart';
 import '../tools/eraser_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/shape_tool.dart';
 import 'color_button.dart';
-import 'file_menu_button.dart';
 import 'stroke_width_button.dart';
 import 'tool_button.dart';
 
@@ -18,9 +18,16 @@ class Toolbar extends StatefulWidget {
   /// スケッチの状態を管理するコントローラ
   final FlexiSketchController controller;
 
+  /// 画像として保存する際のコールバック
+  final SaveSketchAsImage? onSaveAsImage;
+
+  /// データとして保存する際のコールバック
+  final SaveSketchAsData? onSaveAsData;
+
   /// ツールバーの表示状態
   final bool isVisible;
 
+  // TOOD: 表示状態を制御できていないので要修正
   /// ツールバーの表示状態を変更するコールバック
   final ValueChanged<bool>? onVisibilityChanged;
 
@@ -34,13 +41,12 @@ class Toolbar extends StatefulWidget {
     required this.controller,
     this.isVisible = true,
     this.onVisibilityChanged,
+    this.onSaveAsImage,
+    this.onSaveAsData,
   });
 
   @override
   State<Toolbar> createState() => _ToolbarState();
-
-  /// 保存機能が有効かどうか
-  bool get hasSaveFeature => controller.canSaveAsImage || controller.canSaveAsData;
 }
 
 class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
@@ -186,13 +192,26 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (widget.hasSaveFeature)
-            _buildToolGroup([
-              FileMenuButton(
-                controller: widget.controller,
-                onError: widget.controller.onError,
-              ),
-            ]),
+          if (widget.onSaveAsImage != null)
+            ToolButton(
+              icon: Icons.image,
+              onPressed: () async {
+                final imageData = await widget.controller.generateImageData();
+                // TODO: FlexiSketch のメタデータを追加
+                widget.onSaveAsImage!(imageData);
+              },
+              tooltip: '画像として保存',
+            ),
+          if (widget.onSaveAsData != null)
+            ToolButton(
+              icon: Icons.save,
+              onPressed: () async {
+                final data = await widget.controller.generateData();
+                // TODO: FlexiSketch のメタデータを追加
+                widget.onSaveAsData!(data);
+              },
+              tooltip: 'データとして保存',
+            ),
           _buildToolGroup([
             ToolButton(
               icon: Icons.upload_file,

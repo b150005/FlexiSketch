@@ -132,35 +132,3 @@ class SketchData {
     required this.objects,
   });
 }
-
-/// スケッチの保存方法を定義するインターフェース
-///
-/// このインターフェースは、スケッチデータの永続化に必要な基本的な操作（保存、読み込み、一覧取得、削除）を定義します。
-abstract class SketchStorage {
-  /// スケッチを保存する
-  ///
-  /// [data] 保存するスケッチデータ
-  /// [asImage] true の場合、スケッチを画像としても保存します
-  /// Returns: 保存されたスケッチの更新されたメタデータ
-  /// Throws: StorageException 保存に失敗した場合
-  Future<SketchMetadata> saveSketch(SketchData data, {bool asImage = false});
-
-  /// スケッチを読み込む
-  ///
-  /// [id] 読み込むスケッチのID
-  /// Returns: 読み込まれたスケッチデータ
-  /// Throws: StorageException スケッチが見つからない場合や読み込みに失敗した場合
-  Future<SketchData> loadSketch(String id);
-
-  /// 保存されているスケッチの一覧を取得する
-  ///
-  /// Returns: スケッチのメタデータリスト（更新日時の降順）
-  /// Throws: StorageException 一覧の取得に失敗した場合
-  Future<List<SketchMetadata>> listSketches();
-
-  /// スケッチを削除する
-  ///
-  /// [id] 削除するスケッチのID
-  /// Throws: StorageException 削除に失敗した場合
-  Future<void> deleteSketch(String id);
-}
