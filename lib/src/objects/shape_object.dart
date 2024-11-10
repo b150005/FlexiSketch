@@ -174,6 +174,5 @@ class ShapeObject extends DrawableObject {
     _endPoint = newEndPoint;
     _shapePath = null;
     _localBoundsCache = null;
-    globalCenter = Rect.fromPoints(_startPoint, _endPoint).center;
   }
 }
