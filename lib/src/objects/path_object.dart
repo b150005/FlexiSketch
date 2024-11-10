@@ -26,7 +26,7 @@ class PathObject extends DrawableObject {
   /// [inputPath] 入力パス（任意の座標系）
   /// [paint] 描画スタイル
   PathObject({required Path inputPath, required this.paint})
-      : _path = _centerPath(inputPath),
+      : _path = inputPath,
         super(globalCenter: inputPath.getBounds().center);
 
   @override
@@ -87,16 +87,6 @@ class PathObject extends DrawableObject {
     } catch (e) {
       return true;
     }
-  }
-
-  /// 入力パスを中心基準のローカル座標系に変換する
-  ///
-  /// [inputPath] 変換対象の入力パス
-  ///
-  /// Returns: 中心を原点とする新しいパス
-  static Path _centerPath(Path inputPath) {
-    final bounds = inputPath.getBounds();
-    return inputPath.shift(-bounds.center);
   }
 
   /// パスに新しい点を追加する
