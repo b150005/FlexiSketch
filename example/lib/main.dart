@@ -44,8 +44,15 @@ class _TestScreenState extends State<TestScreen> {
     return Scaffold(
       body: Row(
         children: [
-          const Expanded(
-            child: FlexiSketchWidget(),
+          Expanded(
+            child: FlexiSketchWidget(
+              onSaveAsImage: (imageData) async {
+                print("");
+              },
+              onSaveAsData: (data) async {
+                print("");
+              },
+            ),
           ),
           if (_lastSavedJson != null) ...[
             const VerticalDivider(width: 1),

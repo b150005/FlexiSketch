@@ -12,6 +12,7 @@ import 'src/objects/image_object.dart';
 import 'src/objects/path_object.dart';
 import 'src/objects/shape_object.dart';
 import 'src/serialization/serializers/drawable_object_serializer.dart';
+import 'src/storage/sketch_data.dart';
 import 'src/tools/drawing_tool.dart';
 import 'src/tools/shape_tool.dart';
 
@@ -452,18 +453,23 @@ class FlexiSketchController extends ChangeNotifier {
   /* 保存処理 */
 
   /// キャンバスの内容をデータとして生成します
-  Future<Map<String, dynamic>> generateData() async {
+  Future<Map<String, dynamic>> generateData([SketchMetadata? metadata]) async {
     try {
       // 各オブジェクトのシリアライズを並行処理
       final serializedObjects = await Future.wait(_objects.map((obj) => DrawableObjectSerializer.instance.toJson(obj)));
 
-      return {
+      final content = {
         'version': 1,
         'canvas': {
           'width': _canvasSize?.width ?? 0,
           'height': _canvasSize?.height ?? 0,
         },
         'objects': serializedObjects,
+      };
+
+      return {
+        'metadata': metadata?.toJson() ?? SketchMetadata.create('Untitled Sketch').toJson(),
+        'content': content,
       };
     } catch (e) {
       throw DataGenerationError('Failed to generate sketch data', e);
@@ -562,8 +568,33 @@ class FlexiSketchController extends ChangeNotifier {
   }
 
   Future<void> loadFromJson(Map<String, dynamic> json) async {
-    _objects.clear();
-    // TODO: JSONからオブジェクトを復元する処理の実装
-    notifyListeners();
+    try {
+      _objects.clear();
+
+      // TODO: JSONからオブジェクトを復元する処理の実装
+      // キャンバスサイズの復元
+      final canvas = json['canvas'] as Map<String, dynamic>;
+      _canvasSize = Size(
+        canvas['width'] as double,
+        canvas['height'] as double,
+      );
+
+      // オブジェクトの復元
+      final serializedObjects = json['objects'] as List<dynamic>;
+      final deserializedObjects = await Future.wait(
+        serializedObjects.map((obj) => DrawableObjectSerializer.instance.fromJson(obj as Map<String, dynamic>)),
+      );
+
+      // 復元したオブジェクトを追加
+      _objects.addAll(deserializedObjects);
+
+      // 選択状態をリセット
+      clearSelection();
+
+      notifyListeners();
+    } catch (e) {
+      _notifyError('データの読み込みに失敗しました: $e');
+      rethrow;
+    }
   }
 }

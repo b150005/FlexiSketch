@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../flexi_sketch_controller.dart';
 import '../handlers/save_handler.dart';
+import '../storage/sketch_data.dart';
 import '../tools/eraser_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/shape_tool.dart';
@@ -27,7 +31,7 @@ class Toolbar extends StatefulWidget {
   /// ツールバーの表示状態
   final bool isVisible;
 
-  // TOOD: 表示状態を制御できていないので要修正
+  // TODO: 表示状態を制御できていないので要修正
   /// ツールバーの表示状態を変更するコールバック
   final ValueChanged<bool>? onVisibilityChanged;
 
@@ -70,6 +74,9 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     Colors.orange,
     Colors.brown,
   ];
+
+  // TODO: デバッグ用
+  String? _lastSavedJson;
 
   @override
   void initState() {
@@ -192,26 +199,51 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (widget.onSaveAsImage != null)
+          _buildToolGroup([
+            if (widget.onSaveAsImage != null)
+              ToolButton(
+                icon: Icons.image,
+                onPressed: () async {
+                  final imageData = await widget.controller.generateImageData();
+                  widget.onSaveAsImage!(imageData);
+                },
+                tooltip: '画像として保存',
+              ),
+            if (widget.onSaveAsData != null)
+              ToolButton(
+                icon: Icons.save,
+                onPressed: () async {
+                  final data = await widget.controller.generateData();
+                  widget.onSaveAsData!(data);
+                },
+                tooltip: 'データとして保存',
+              ),
             ToolButton(
-              icon: Icons.image,
+              icon: Icons.copy,
               onPressed: () async {
-                final imageData = await widget.controller.generateImageData();
-                // TODO: FlexiSketch のメタデータを追加
-                widget.onSaveAsImage!(imageData);
+                final metadata = SketchMetadata.create('Debug Sketch');
+                final data = await widget.controller.generateData(metadata);
+                _lastSavedJson = const JsonEncoder.withIndent('  ').convert(data);
+                await Clipboard.setData(ClipboardData(text: _lastSavedJson!));
               },
-              tooltip: '画像として保存',
+              tooltip: 'JSONをコピー',
             ),
-          if (widget.onSaveAsData != null)
             ToolButton(
-              icon: Icons.save,
-              onPressed: () async {
-                final data = await widget.controller.generateData();
-                // TODO: FlexiSketch のメタデータを追加
-                widget.onSaveAsData!(data);
-              },
-              tooltip: 'データとして保存',
+              icon: Icons.restore,
+              onPressed: _lastSavedJson != null
+                  ? () async {
+                      try {
+                        final data = json.decode(_lastSavedJson!);
+                        await widget.controller.loadFromJson(data['content']);
+                      } catch (e) {
+                        widget.controller.onError?.call('JSONの復元に失敗しました: $e');
+                      }
+                    }
+                  : null,
+              tooltip: '最後に保存したJSONから復元',
             ),
+          ]),
+          _buildVerticalDivider(),
           _buildToolGroup([
             ToolButton(
               icon: Icons.upload_file,
