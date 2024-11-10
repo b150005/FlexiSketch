@@ -105,29 +105,6 @@ class ShapeObject extends DrawableObject {
     }
   }
 
-  /// シリアライズ用のメソッド
-  @override
-  Map<String, dynamic> toSerializableMap() {
-    final map = super.toSerializableMap();
-    map['shape'] = {
-      'startPoint': {
-        'x': _startPoint.dx,
-        'y': _startPoint.dy,
-      },
-      'endPoint': {
-        'x': _endPoint.dx,
-        'y': _endPoint.dy,
-      },
-      'shapeType': shapeType.toString(),
-      'paint': {
-        'color': paint.color.value,
-        'strokeWidth': paint.strokeWidth,
-        'blendMode': paint.blendMode.toString(),
-      },
-    };
-    return map;
-  }
-
   /// キャッシュされたパスを取得する
   ///
   /// パスが未作成の場合は新規作成します。

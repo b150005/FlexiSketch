@@ -243,27 +243,4 @@ abstract class DrawableObject implements Serializable {
     _transformCache = null;
     _inverseTransformCache = null;
   }
-
-  /// オブジェクトをシリアライズするためのデータを取得する
-  Map<String, dynamic> toSerializableMap() {
-    return {
-      'globalCenter': {
-        'x': globalCenter.dx,
-        'y': globalCenter.dy,
-      },
-      'rotation': rotation,
-      'scale': scale,
-    };
-  }
-
-  /// シリアライズされたデータからオブジェクトのプロパティを設定する
-  void fromSerializableMap(Map<String, dynamic> map) {
-    globalCenter = Offset(
-      map['globalCenter']['x'] as double,
-      map['globalCenter']['y'] as double,
-    );
-    rotation = map['rotation'] as double;
-    scale = map['scale'] as double;
-    _invalidateTransform();
-  }
 }

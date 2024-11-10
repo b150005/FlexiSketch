@@ -89,14 +89,6 @@ class PathObject extends DrawableObject {
     }
   }
 
-  /// シリアライズ用のメソッド
-  @override
-  Map<String, dynamic> toSerializableMap() {
-    final map = super.toSerializableMap();
-    // パス固有のプロパティは PathObjectSerializer で処理
-    return map;
-  }
-
   /// 入力パスを中心基準のローカル座標系に変換する
   ///
   /// [inputPath] 変換対象の入力パス

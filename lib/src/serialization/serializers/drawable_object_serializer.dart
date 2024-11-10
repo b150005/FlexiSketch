@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import '../../objects/drawable_object.dart';
 import '../object_serializer.dart';
 import 'image_object_serializer.dart';
@@ -42,8 +44,16 @@ class DrawableObjectSerializer extends ObjectSerializer<DrawableObject> {
     return {
       'type': object.type,
       'version': 1, // バージョン管理のため追加
-      'properties': object.toSerializableMap(),
-      'data': await object.serializer.toJson(object),
+      'properties': {
+        // 共通プロパティのみ
+        'globalCenter': {
+          'x': object.globalCenter.dx,
+          'y': object.globalCenter.dy,
+        },
+        'rotation': object.rotation,
+        'scale': object.scale,
+      },
+      'data': await object.serializer.toJson(object), // サブクラス固有のデータ
     };
   }
 
@@ -76,7 +86,12 @@ class DrawableObjectSerializer extends ObjectSerializer<DrawableObject> {
 
     // 共通プロパティの復元
     if (object is DrawableObject) {
-      object.fromSerializableMap(properties);
+      object.globalCenter = Offset(
+        properties['globalCenter']['x'] as double,
+        properties['globalCenter']['y'] as double,
+      );
+      object.rotation = properties['rotation'] as double;
+      object.scale = properties['scale'] as double;
       return object;
     }
 

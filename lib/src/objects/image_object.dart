@@ -80,17 +80,4 @@ class ImageObject extends DrawableObject {
     // 画像は矩形として判定
     return localBounds.contains(localPoint);
   }
-
-  /// シリアライズ用のメソッド
-  @override
-  Map<String, dynamic> toSerializableMap() {
-    final map = super.toSerializableMap();
-    map['image'] = {
-      'size': {
-        'width': _size.width,
-        'height': _size.height,
-      },
-    };
-    return map;
-  }
 }
