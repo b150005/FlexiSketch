@@ -36,11 +36,24 @@ class _TestScreenState extends State<TestScreen> {
   Map<String, dynamic>? _currentData;
   String? _errorMessage;
   final TextEditingController _jsonController = TextEditingController();
+  Map<String, dynamic>? _pendingData;
+
+  // テキストが空かどうかの状態を管理
+  bool _isTextEmpty = true;
 
   @override
   void initState() {
     super.initState();
-    _jsonController.addListener(_onJsonTextChanged);
+
+    // テキストの変更を監視
+    _jsonController.addListener(() {
+      final isEmpty = _jsonController.text.isEmpty;
+      if (isEmpty != _isTextEmpty) {
+        setState(() {
+          _isTextEmpty = isEmpty;
+        });
+      }
+    });
   }
 
   @override
@@ -49,10 +62,12 @@ class _TestScreenState extends State<TestScreen> {
     super.dispose();
   }
 
-  void _onJsonTextChanged() {
+  /// JSONの解析を行う
+  void _parseJson() {
     if (_jsonController.text.isEmpty) {
       setState(() {
-        _currentData = null;
+        _pendingData = null;
+        _errorMessage = null;
       });
       return;
     }
@@ -60,12 +75,23 @@ class _TestScreenState extends State<TestScreen> {
     try {
       final data = json.decode(_jsonController.text) as Map<String, dynamic>;
       setState(() {
-        _currentData = data;
+        _pendingData = data;
         _errorMessage = null;
       });
     } catch (e) {
       setState(() {
+        _pendingData = null;
         _errorMessage = 'JSONの解析に失敗しました: $e';
+      });
+    }
+  }
+
+  /// キャンバスにJSONデータを反映する
+  void _applyJsonToCanvas() {
+    if (_pendingData != null) {
+      setState(() {
+        _currentData = _pendingData;
+        _errorMessage = null;
       });
     }
   }
@@ -90,6 +116,7 @@ class _TestScreenState extends State<TestScreen> {
                 final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
                 setState(() {
                   _currentData = jsonData;
+                  _pendingData = jsonData; // 保存時は pending も更新
                   _jsonController.text = jsonString;
                 });
                 await Clipboard.setData(ClipboardData(text: jsonString));
@@ -184,20 +211,38 @@ class _TestScreenState extends State<TestScreen> {
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                               const Spacer(),
-                              if (_jsonController.text.isNotEmpty)
-                                TextButton.icon(
-                                  icon: const Icon(Icons.copy, size: 20),
-                                  label: const Text('コピー'),
-                                  onPressed: () {
-                                    Clipboard.setData(ClipboardData(text: _jsonController.text));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('JSONをクリップボードにコピーしました'),
-                                        duration: Duration(seconds: 1),
-                                      ),
-                                    );
-                                  },
-                                ),
+                              // JSONの構文チェックと反映ボタン
+                              TextButton.icon(
+                                icon: const Icon(Icons.play_arrow, size: 20),
+                                label: const Text('反映'),
+                                onPressed: _isTextEmpty
+                                    ? null
+                                    : () {
+                                        _parseJson();
+                                        if (_errorMessage == null) {
+                                          _applyJsonToCanvas();
+                                        }
+                                      },
+                              ),
+                              const SizedBox(width: 8),
+                              // コピーボタン
+                              TextButton.icon(
+                                icon: const Icon(Icons.copy, size: 20),
+                                label: const Text('コピー'),
+                                onPressed: _isTextEmpty
+                                    ? null
+                                    : () {
+                                        Clipboard.setData(
+                                          ClipboardData(text: _jsonController.text),
+                                        );
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('JSONをクリップボードにコピーしました'),
+                                            duration: Duration(seconds: 1),
+                                          ),
+                                        );
+                                      },
+                              ),
                             ],
                           ),
                         ),
@@ -216,7 +261,7 @@ class _TestScreenState extends State<TestScreen> {
                                 expands: true,
                                 decoration: const InputDecoration(
                                   border: InputBorder.none,
-                                  hintText: 'JSONを入力するとキャンバスに反映されます',
+                                  hintText: 'JSONを入力して「反映」ボタンを押すとキャンバスに反映されます',
                                   hintStyle: TextStyle(color: Colors.grey),
                                 ),
                                 style: TextStyle(
