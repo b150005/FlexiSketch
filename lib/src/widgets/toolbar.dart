@@ -1,11 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../flexi_sketch_controller.dart';
 import '../handlers/save_handler.dart';
-import '../storage/sketch_data.dart';
 import '../tools/eraser_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/shape_tool.dart';
@@ -74,9 +70,6 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     Colors.orange,
     Colors.brown,
   ];
-
-  // TODO: デバッグ用
-  String? _lastSavedJson;
 
   @override
   void initState() {
@@ -213,30 +206,6 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                 },
                 tooltip: 'データとして保存',
               ),
-            ToolButton(
-              icon: Icons.copy,
-              onPressed: () async {
-                final metadata = SketchMetadata.create('Debug Sketch');
-                final data = await widget.controller.generateData(metadata);
-                _lastSavedJson = const JsonEncoder.withIndent('  ').convert(data);
-                await Clipboard.setData(ClipboardData(text: _lastSavedJson!));
-              },
-              tooltip: 'JSONをコピー',
-            ),
-            ToolButton(
-              icon: Icons.restore,
-              onPressed: _lastSavedJson != null
-                  ? () async {
-                      try {
-                        final data = json.decode(_lastSavedJson!);
-                        await widget.controller.loadFromJson(data['content']);
-                      } catch (e) {
-                        widget.controller.onError?.call('JSONの復元に失敗しました: $e');
-                      }
-                    }
-                  : null,
-              tooltip: '最後に保存したJSONから復元',
-            ),
           ]),
           _buildVerticalDivider(),
           _buildToolGroup([
