@@ -33,7 +33,6 @@ class TestScreen extends StatefulWidget {
 
 class _TestScreenState extends State<TestScreen> {
   Image? _generatedImage;
-  String? _lastSavedJson;
   Map<String, dynamic>? _currentData;
   String? _errorMessage;
   final TextEditingController _jsonController = TextEditingController();
@@ -87,11 +86,10 @@ class _TestScreenState extends State<TestScreen> {
                   _errorMessage = null;
                 });
               },
-              onSaveAsData: (data) async {
-                final jsonString = const JsonEncoder.withIndent('  ').convert(data);
+              onSaveAsData: (jsonData, imageData) async {
+                final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
                 setState(() {
-                  _lastSavedJson = jsonString;
-                  _currentData = data;
+                  _currentData = jsonData;
                   _jsonController.text = jsonString;
                 });
                 await Clipboard.setData(ClipboardData(text: jsonString));

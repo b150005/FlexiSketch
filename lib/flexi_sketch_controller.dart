@@ -452,8 +452,8 @@ class FlexiSketchController extends ChangeNotifier {
 
   /* 保存処理 */
 
-  /// キャンバスの内容をデータとして生成します
-  Future<Map<String, dynamic>> generateData([SketchMetadata? metadata]) async {
+  /// キャンバスの内容を JSON データとして生成します
+  Future<Map<String, dynamic>> generateJsonData([SketchMetadata? metadata]) async {
     try {
       // 各オブジェクトのシリアライズを並行処理
       final serializedObjects = await Future.wait(_objects.map((obj) => DrawableObjectSerializer.instance.toJson(obj)));

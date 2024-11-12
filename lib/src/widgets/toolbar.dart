@@ -201,8 +201,11 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
               ToolButton(
                 icon: Icons.save,
                 onPressed: () async {
-                  final data = await widget.controller.generateData();
-                  widget.onSaveAsData!(data);
+                  // JSON データの生成
+                  final jsonData = await widget.controller.generateJsonData();
+                  // 画像データの生成
+                  final imageData = await widget.controller.generateImageData();
+                  widget.onSaveAsData!(jsonData, imageData);
                 },
                 tooltip: 'データとして保存',
               ),

@@ -53,9 +53,16 @@ class MyDrawingPage extends StatelessWidget {
           await saveImageToGallery(imageData);
         },
         // データとして保存する処理
-        onSaveAsData: (data) async {
-          // JSONデータを処理
-          await saveToCloud(data);
+        onSaveAsData: (jsonData, imageData) async {
+          // JSONデータと画像データを処理
+          final imageUrl = await uploadImage(imageData);
+
+          // メタデータを更新（画像URLを設定）
+          final metadata = jsonData['metadata'] as Map<String, dynamic>;
+          metadata['previewImageUrl'] = imageUrl;
+
+          // 更新したJSONデータを保存
+          await saveToCloud(jsonData);
         },
         // 初期データの読み込み
         data: initialData,

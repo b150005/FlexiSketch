@@ -10,4 +10,4 @@ typedef SaveSketchAsImage = Future<void> Function(Uint8List imageData);
 ///
 /// スケッチのデータを保存する処理を実行します。
 /// 処理が成功した場合は正常終了し、失敗した場合は例外をスローします。
-typedef SaveSketchAsData = Future<void> Function(Map<String, dynamic> data);
+typedef SaveSketchAsData = Future<void> Function(Map<String, dynamic> jsonData, Uint8List imageData);
