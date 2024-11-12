@@ -7,99 +7,149 @@ FlexiSketch は、Flutter アプリケーション開発者向けの高機能か
 
 ## 機能
 
-- フリーハンド描画
-- 図形描画(四角形、円)
-- 画像の追加
-- 消しゴム
-- 取り消し/やり直し
-- カスタマイズ可能な保存機能
+- 描画ツール
+  - フリーハンド描画（ペン）
+  - 図形描画（四角形、円）
+  - 消しゴム
+- 画像機能
+  - 画像のアップロード
+  - クリップボードからの画像貼り付け
+- 編集機能
+  - 元に戻す/やり直し
+  - 全消去
+- カスタマイズ
+  - 色の選択（プリセットカラーパレット）
+  - 線の太さ調整
+- データ管理
+  - PNG 画像としてエクスポート
+  - JSON データとして保存/読み込み
+- キーボードショートカット
+  - Ctrl+Z: 元に戻す
+  - Ctrl+Y/Ctrl+Shift+Z: やり直す
+  - Ctrl+V: 画像貼り付け
 
-## 使用方法
+## インストール
 
-### 基本的な使用方法
+```yaml
+dependencies:
+  flexi_sketch: ^1.0.0 # バージョンは最新のものを指定してください
+```
+
+## 基本的な使用方法
 
 ```dart
 import 'package:flexi_sketch/flexi_sketch.dart';
 
 class MyDrawingPage extends StatelessWidget {
-  final controller = FlexiSketchController();
+  const MyDrawingPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: FlexiSketchWidget(
-        controller: controller,
+        // 画像として保存する処理
+        onSaveAsImage: (imageData) async {
+          // 画像データ（Uint8List）を処理
+          await saveImageToGallery(imageData);
+        },
+        // データとして保存する処理
+        onSaveAsData: (data) async {
+          // JSONデータを処理
+          await saveToCloud(data);
+        },
+        // 初期データの読み込み
+        data: initialData,
+        // エラーハンドリング
+        onError: (message) {
+          showErrorDialog(context, message);
+        },
       ),
     );
   }
 }
 ```
 
-### 保存機能の設定
+## データ形式
 
-スケッチを画像またはデータとして保存するには、保存処理を設定します：
+### JSON データ構造
 
-```dart
-// コントローラーの初期化
-final controller = FlexiSketchController();
+FlexiSketch で保存される JSON データは以下の構造を持ちます：
 
-// 画像として保存する処理の設定
-controller.saveAsImage = (imageData) async {
-  // 画像データ（Uint8List）を保存する処理
-  await saveToGallery(imageData);
-};
-
-// データとして保存する処理の設定
-controller.saveAsData = (data) async {
-  // スケッチデータ（Map<String, dynamic>）を保存する処理
-  await saveToCloud(data);
-};
-```
-
-### エラーハンドリング
-
-保存処理中のエラーは`FlexiSketchError`として捕捉できます：
-
-```dart
-try {
-  await controller.handleSaveAsImage();
-} on SaveHandlerNotSetError {
-  // 保存処理が設定されていない場合
-} on ImageGenerationError {
-  // 画像の生成に失敗した場合
-} on SaveError {
-  // その他の保存エラーの場合
+```json
+{
+  "metadata": {
+    "id": "unique-id",
+    "createdAt": "2024-11-12T10:32:37.303",
+    "updatedAt": "2024-11-12T10:32:37.303",
+    "title": "Sketch Title"
+  },
+  "content": {
+    "version": 1,
+    "canvas": {
+      "width": 800,
+      "height": 600
+    },
+    "objects": [
+      // 描画オブジェクトの配列
+    ]
+  }
 }
 ```
 
-## ライセンス
+## エラーハンドリング
 
-[ライセンス形態を決定し記載]
+FlexiSketch は以下のエラー型を提供します：
 
-## 開発者
+```dart
+try {
+  // 保存処理など
+} on SaveHandlerNotSetError {
+  // 保存ハンドラが設定されていない場合
+} on ImageGenerationError {
+  // 画像生成に失敗した場合
+} on DataGenerationError {
+  // データ生成に失敗した場合
+} on SaveError {
+  // その他の保存関連エラー
+} on FlexiSketchError {
+  // その他のFlexiSketchエラー
+}
+```
 
-[開発者または開発チームの情報]
+## キーボードショートカット
 
-## リポジトリ
-
-[GitHub などのリポジトリ URL]
-
-## ドキュメント
-
-[詳細なドキュメントへのリンク]
-
-## サポート
-
-[サポートの方法や連絡先]
-
-FlexiSketch - 柔軟で強力な描画機能を、あなたのアプリケーションに。
+| キー             | 機能         |
+| ---------------- | ------------ |
+| Ctrl + Z         | 元に戻す     |
+| Ctrl + Shift + Z | やり直す     |
+| Ctrl + Y         | やり直す     |
+| Ctrl + V         | 画像貼り付け |
 
 ## TODO
 
-### 機能追加
+### 機能追加予定
 
-- スティッキーノート形式でテキストを挿入できるようにする
-- 画像のクロップ(切り取り)ができるようにする
-- 描画したオブジェクトのコピー&ペーストができるようにする
-- 範囲選択が可能な選択ツールを実装する
-- ペンで引いた線(直線・円)の近似線・図形を表示・置換できるようにする
+- スティッキーノート形式でのテキスト挿入
+- 画像のクロップ機能
+- オブジェクトのコピー&ペースト
+- 範囲選択ツール
+- ペンストロークの図形近似変換
+
+### 改善予定
+
+- ツールバーの表示/非表示制御の改善
+- パフォーマンスの最適化
+- モバイル対応の強化
+
+## ライセンス
+
+[ライセンス情報を追加]
+
+## 貢献
+
+バグ報告や機能要望は[Issues]()にて受け付けています。  
+プルリクエストも歓迎です。
+
+## サポート
+
+ドキュメントやサポートについては[Wiki]()を参照してください。
