@@ -36,14 +36,19 @@ class FlexiSketchWidget extends StatefulWidget {
   });
 
   @override
-  State<FlexiSketchWidget> createState() => _FlexiSketchWidgetState();
+  State<FlexiSketchWidget> createState() => FlexiSketchWidgetState();
 }
 
-class _FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandler {
+class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandler {
   /// スケッチの状態を管理するコントローラ
   ///
   /// このコントローラを通じて、描画ツールの選択、色の変更、Undo/Redoなどの操作を行うことができます。
   final FlexiSketchController _controller = FlexiSketchController();
+
+  /// スケッチの状態を管理するコントローラ
+  ///
+  /// このコントローラを通じて、描画ツールの選択、色の変更、Undo/Redoなどの操作を行うことができます。
+  FlexiSketchController get controller => _controller;
 
   @override
   void initState() {
