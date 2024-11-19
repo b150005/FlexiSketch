@@ -120,6 +120,8 @@ class _TestScreenState extends State<TestScreen> {
                   _jsonController.text = jsonString;
                 });
                 await Clipboard.setData(ClipboardData(text: jsonString));
+
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('JSONをクリップボードにコピーしました'),
