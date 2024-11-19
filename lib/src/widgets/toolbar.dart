@@ -210,7 +210,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                 tooltip: 'データとして保存',
               ),
           ]),
-          _buildVerticalDivider(),
+          if (widget.onSaveAsImage != null || widget.onSaveAsData != null) _buildVerticalDivider(),
           _buildToolGroup([
             ToolButton(
               icon: Icons.upload_file,
