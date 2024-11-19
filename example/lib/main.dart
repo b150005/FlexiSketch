@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flexi_sketch/flexi_sketch.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 void main() {
   runApp(const MyApp());
@@ -38,6 +39,8 @@ class _TestScreenState extends State<TestScreen> {
   final TextEditingController _jsonController = TextEditingController();
   Map<String, dynamic>? _pendingData;
 
+  final FlexiSketchController _controller = FlexiSketchController();
+
   // テキストが空かどうかの状態を管理
   bool _isTextEmpty = true;
 
@@ -58,47 +61,25 @@ class _TestScreenState extends State<TestScreen> {
 
   @override
   void dispose() {
+    _controller.dispose();
     _jsonController.dispose();
     super.dispose();
-  }
-
-  /// JSONの解析を行う
-  void _parseJson() {
-    if (_jsonController.text.isEmpty) {
-      setState(() {
-        _pendingData = null;
-        _errorMessage = null;
-      });
-      return;
-    }
-
-    try {
-      final data = json.decode(_jsonController.text) as Map<String, dynamic>;
-      setState(() {
-        _pendingData = data;
-        _errorMessage = null;
-      });
-    } catch (e) {
-      setState(() {
-        _pendingData = null;
-        _errorMessage = 'JSONの解析に失敗しました: $e';
-      });
-    }
-  }
-
-  /// キャンバスにJSONデータを反映する
-  void _applyJsonToCanvas() {
-    if (_pendingData != null) {
-      setState(() {
-        _currentData = _pendingData;
-        _errorMessage = null;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("FlexiSketch Demo"),
+        actions: [
+          // 画像読み込みボタンを追加
+          IconButton(
+            icon: const Icon(Icons.image),
+            tooltip: '画像を読み込んでキャンバスを上書き',
+            onPressed: _pickAndLoadImage,
+          ),
+        ],
+      ),
       body: Row(
         children: [
           // キャンバス
@@ -285,5 +266,71 @@ class _TestScreenState extends State<TestScreen> {
         ],
       ),
     );
+  }
+
+  /// JSONの解析を行う
+  void _parseJson() {
+    if (_jsonController.text.isEmpty) {
+      setState(() {
+        _pendingData = null;
+        _errorMessage = null;
+      });
+      return;
+    }
+
+    try {
+      final data = json.decode(_jsonController.text) as Map<String, dynamic>;
+      setState(() {
+        _pendingData = data;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _pendingData = null;
+        _errorMessage = 'JSONの解析に失敗しました: $e';
+      });
+    }
+  }
+
+  /// キャンバスにJSONデータを反映する
+  void _applyJsonToCanvas() {
+    if (_pendingData != null) {
+      setState(() {
+        _currentData = _pendingData;
+        _errorMessage = null;
+      });
+    }
+  }
+
+  /// 画像を選択してFlexiSketchに読み込む
+  Future<void> _pickAndLoadImage() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+      if (pickedFile != null) {
+        final bytes = await pickedFile.readAsBytes();
+
+        // 画像データをFlexiSketchに読み込み
+        await _controller.clearAndLoadImage(bytes);
+
+        // FlexiSketch の現在の状態を JSON として取得
+        // TODO: ロード時にメモリ消費量が異常に増える問題の調査
+        final jsonData = await _controller.generateJsonData();
+        final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
+
+        // JSONプレビューを更新
+        setState(() {
+          _currentData = jsonData;
+          _pendingData = jsonData;
+          _jsonController.text = jsonString;
+          _errorMessage = null;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = '画像の読み込み中にエラーが発生しました: $e';
+      });
+    }
   }
 }
