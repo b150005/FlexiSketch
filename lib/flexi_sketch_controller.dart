@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:flexi_sketch/flexi_sketch.dart';
 import 'package:flexi_sketch/src/services/clipboard_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,8 +12,6 @@ import 'src/objects/drawable_object.dart';
 import 'src/objects/image_object.dart';
 import 'src/objects/path_object.dart';
 import 'src/objects/shape_object.dart';
-import 'src/serialization/serializers/drawable_object_serializer.dart';
-import 'src/storage/sketch_data.dart';
 import 'src/tools/drawing_tool.dart';
 import 'src/tools/shape_tool.dart';
 
@@ -421,15 +420,10 @@ class FlexiSketchController extends ChangeNotifier {
   /// [imageData] 画像のバイトデータ
   Future<void> addImageFromBytes(Uint8List imageData) async {
     try {
-      final codec = await ui.instantiateImageCodec(imageData);
-      final frame = await codec.getNextFrame();
-      final image = frame.image;
-
-      final size = Size(image.width.toDouble(), image.height.toDouble());
-      final imageObject = ImageObject(
+      final image = await FlexiSketchDataHelper.decodeImageFromBytes(imageData);
+      final imageObject = FlexiSketchDataHelper.createImageObject(
         image: image,
-        globalCenter: _getCanvasCenter(),
-        size: size, // サイズを明示的に指定
+        center: _getCanvasCenter(),
       );
 
       _addToHistory(HistoryEntryType.paste);
@@ -447,7 +441,7 @@ class FlexiSketchController extends ChangeNotifier {
       return const Offset(0, 0);
     }
 
-    return Offset(_canvasSize!.width / 2, _canvasSize!.height / 2);
+    return FlexiSketchDataHelper.getCanvasCenter(_canvasSize!);
   }
 
   /* 保存処理 */
@@ -593,6 +587,19 @@ class FlexiSketchController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _notifyError('データの読み込みに失敗しました: $e');
+      rethrow;
+    }
+  }
+
+  /// 画像データでキャンバスをクリアして画像を読み込む
+  ///
+  /// [imageData] 画像のバイトデータ
+  Future<void> clearAndLoadImage(Uint8List imageData) async {
+    try {
+      clear(); // 既存の内容をクリア
+      await addImageFromBytes(imageData);
+    } catch (e) {
+      _notifyError('画像の読み込み中にエラーが発生しました: $e');
       rethrow;
     }
   }
