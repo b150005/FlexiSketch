@@ -2,8 +2,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../flexi_sketch_controller.dart';
 import '../objects/image_object.dart';
-import '../serialization/serializers/drawable_object_serializer.dart';
 
 /// Uint8List の画像データから ImageObject や FlexiSketch の初期データを生成するヘルパークラス
 class FlexiSketchDataHelper {
@@ -17,34 +17,32 @@ class FlexiSketchDataHelper {
     double? width,
     double? height,
   }) async {
-    // 画像をデコード
-    final decodedImage = await decodeImageFromBytes(imageData);
+    // 一時的なコントローラを作成
+    final controller = FlexiSketchController();
 
-    // キャンバスサイズの設定
-    final canvasWidth = width ?? decodedImage.width.toDouble();
-    final canvasHeight = height ?? decodedImage.height.toDouble();
+    try {
+      // 画像をデコード
+      final decodedImage = await decodeImageFromBytes(imageData);
 
-    // 画像を中央に配置
-    final center = getCanvasCenter(Size(canvasWidth, canvasHeight));
+      // キャンバスサイズの設定
+      // FIXME: 画像サイズをもとに画像を貼付する処理は共通化できそう(FlexiSketchController#addImageFromBytes の画像の貼付位置も現在描画しているキャンバス領域の中心などに調整する必要がある)
+      final canvasWidth = width ?? decodedImage.width.toDouble();
+      final canvasHeight = height ?? decodedImage.height.toDouble();
+      controller.updateCanvasSize(Size(canvasWidth, canvasHeight));
 
-    // ImageObjectの生成
-    final imageObject = createImageObject(
-      image: decodedImage,
-      center: center,
-    );
+      // 画像オブジェクトを生成してコントローラに追加
+      final imageObject = createImageObject(
+        image: decodedImage,
+        center: getCanvasCenter(Size(canvasWidth, canvasHeight)),
+      );
+      controller.objects.add(imageObject);
 
-    // ImageObjectをシリアライズ
-    final serializedObject = await DrawableObjectSerializer.instance.toJson(imageObject);
-
-    // FlexiSketch の初期データを生成
-    return {
-      'version': 1,
-      'canvas': {
-        'width': canvasWidth,
-        'height': canvasHeight,
-      },
-      'objects': [serializedObject],
-    };
+      // コントローラを使用してJSONデータを生成
+      return await controller.generateJsonData();
+    } finally {
+      // 一時的なコントローラを破棄
+      controller.dispose();
+    }
   }
 
   /// バイトデータから画像をデコードする
