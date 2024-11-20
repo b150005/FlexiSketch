@@ -531,7 +531,7 @@ class FlexiSketchController extends ChangeNotifier {
   ///
   /// すべての描画オブジェクトを含む最小の矩形を計算します。
   /// マージンを指定することで、オブジェクトの周囲に余白を設けることができます。
-  Rect _calculateContentBounds([double margin = 32.0]) {
+  Rect _calculateContentBounds([double margin = 0]) {
     if (_objects.isEmpty) {
       // オブジェクトがない場合はキャンバスサイズを基準に
       return Rect.fromLTWH(
