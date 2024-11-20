@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:flexi_sketch/src/config/flexi_sketch_size_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,6 +17,7 @@ import 'src/storage/sketch_data.dart';
 import 'src/tools/drawing_tool.dart';
 import 'src/tools/shape_tool.dart';
 import 'src/utils/flexi_sketch_data_helper.dart';
+import 'src/utils/flexi_sketch_size_helper.dart';
 
 class FlexiSketchController extends ChangeNotifier {
   /// 選択中の描画ツール
@@ -420,16 +422,46 @@ class FlexiSketchController extends ChangeNotifier {
   /// バイトデータから画像を追加する
   ///
   /// [imageData] 画像のバイトデータ
-  Future<void> addImageFromBytes(Uint8List imageData) async {
+  /// [config] サイズ調整の設定（省略時はデフォルト設定を使用）
+  Future<void> addImageFromBytes(
+    Uint8List imageData, {
+    FlexiSketchSizeConfig config = FlexiSketchSizeConfig.defaultConfig,
+  }) async {
     try {
+      // 画像をデコード
       final image = await FlexiSketchDataHelper.decodeImageFromBytes(imageData);
+
+      // 画像の元サイズを取得
+      final imageSize = Size(
+        image.width.toDouble(),
+        image.height.toDouble(),
+      );
+
+      // 現在のキャンバスサイズまたは画像サイズから計算したサイズを使用
+      final canvasSize = _canvasSize ??
+          FlexiSketchSizeHelper.calculateCanvasSize(
+            imageSize: imageSize,
+            config: config,
+          );
+
+      // 画像の表示サイズを計算
+      final displaySize = FlexiSketchSizeHelper.calculateDisplaySize(
+        imageSize: imageSize,
+        canvasSize: canvasSize,
+        config: config,
+      );
+
+      // 画像オブジェクトを生成
       final imageObject = FlexiSketchDataHelper.createImageObject(
         image: image,
         center: getCanvasCenter(),
+        size: displaySize,
       );
 
+      // 履歴に追加して画像を配置
       _addToHistory(HistoryEntryType.paste);
       _objects.add(imageObject);
+
       notifyListeners();
     } catch (e) {
       _notifyError('画像の追加中にエラーが発生しました: $e');
