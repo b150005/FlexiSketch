@@ -423,7 +423,7 @@ class FlexiSketchController extends ChangeNotifier {
       final image = await FlexiSketchDataHelper.decodeImageFromBytes(imageData);
       final imageObject = FlexiSketchDataHelper.createImageObject(
         image: image,
-        center: _getCanvasCenter(),
+        center: getCanvasCenter(),
       );
 
       _addToHistory(HistoryEntryType.paste);
@@ -436,7 +436,7 @@ class FlexiSketchController extends ChangeNotifier {
   }
 
   /// キャンバスの中心座標を取得する
-  Offset _getCanvasCenter() {
+  Offset getCanvasCenter() {
     if (_canvasSize == null) {
       return const Offset(0, 0);
     }
@@ -587,19 +587,6 @@ class FlexiSketchController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _notifyError('データの読み込みに失敗しました: $e');
-      rethrow;
-    }
-  }
-
-  /// 画像データでキャンバスをクリアして画像を読み込む
-  ///
-  /// [imageData] 画像のバイトデータ
-  Future<void> clearAndLoadImage(Uint8List imageData) async {
-    try {
-      clear(); // 既存の内容をクリア
-      await addImageFromBytes(imageData);
-    } catch (e) {
-      _notifyError('画像の読み込み中にエラーが発生しました: $e');
       rethrow;
     }
   }

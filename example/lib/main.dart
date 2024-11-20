@@ -312,18 +312,18 @@ class _TestScreenState extends State<TestScreen> {
         final bytes = await pickedFile.readAsBytes();
 
         // 画像データをFlexiSketchに読み込み
-        await _controller.clearAndLoadImage(bytes);
+        final image = await FlexiSketchDataHelper.decodeImageFromBytes(bytes);
+        final imageObject = FlexiSketchDataHelper.createImageObject(
+          image: image,
+          center: _controller.getCanvasCenter(),
+        );
+        _controller.objects.add(imageObject);
 
         // FlexiSketch の現在の状態を JSON として取得
-        // TODO: ロード時にメモリ消費量が異常に増える問題の調査
         final jsonData = await _controller.generateJsonData();
-        final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
 
-        // JSONプレビューを更新
         setState(() {
           _currentData = jsonData;
-          _pendingData = jsonData;
-          _jsonController.text = jsonString;
           _errorMessage = null;
         });
       }
