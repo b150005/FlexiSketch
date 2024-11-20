@@ -20,7 +20,7 @@ export 'src/handlers/save_handler.dart';
 export 'src/serialization/serializers/drawable_object_serializer.dart' show DrawableObjectSerializer;
 
 // データ変換のヘルパークラス
-export 'src/initialization/flexi_sketch_data_helper.dart';
+export 'src/utils/flexi_sketch_data_helper.dart';
 
 // SketchStorageとその関連クラス
 export 'src/storage/sketch_data.dart' show SketchData, SketchMetadata;
