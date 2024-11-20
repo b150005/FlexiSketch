@@ -473,6 +473,9 @@ class FlexiSketchController extends ChangeNotifier {
 
   /// キャンバスの内容を画像データとして生成します
   Future<Uint8List> generateImageData() async {
+    // オブジェクトの選択状態を解除
+    clearSelection();
+
     try {
       // コンテンツの範囲を計算（マージン付き）
       final contentBounds = _calculateContentBounds();
