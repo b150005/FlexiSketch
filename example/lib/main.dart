@@ -76,7 +76,7 @@ class _TestScreenState extends State<TestScreen> {
           IconButton(
             icon: const Icon(Icons.image),
             tooltip: '画像を読み込んでキャンバスを上書き',
-            onPressed: _pickAndLoadImage,
+            onPressed: () => _pickAndLoadImage(context),
           ),
         ],
       ),
@@ -303,7 +303,7 @@ class _TestScreenState extends State<TestScreen> {
   }
 
   /// 画像を選択してFlexiSketchに読み込む
-  Future<void> _pickAndLoadImage() async {
+  Future<void> _pickAndLoadImage(BuildContext context) async {
     try {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -311,8 +311,25 @@ class _TestScreenState extends State<TestScreen> {
       if (pickedFile != null) {
         final bytes = await pickedFile.readAsBytes();
 
-        // 画像データをFlexiSketchに読み込み
-        final jsonData = await FlexiSketchDataHelper.createInitialDataFromImage(bytes);
+        // 現在のキャンバスサイズを取得
+        if (!context.mounted) return;
+        final mediaQuery = MediaQuery.of(context);
+        final screenSize = mediaQuery.size;
+        final appBarHeight = AppBar().preferredSize.height + mediaQuery.padding.top;
+        final availableHeight = screenSize.height - appBarHeight;
+
+        // キャンバス領域は Row > Expanded(flex: 2) で配置されているため、利用可能な幅の 2/3 がキャンバスの幅となる
+        final canvasSize = Size(
+          screenSize.width * 2 / 3,
+          availableHeight,
+        );
+
+        // 画像データを FlexiSketch に読み込み
+        final jsonData = await FlexiSketchDataHelper.createInitialDataFromImage(
+          bytes,
+          width: canvasSize.width,
+          height: canvasSize.height,
+        );
 
         setState(() {
           _currentData = jsonData;

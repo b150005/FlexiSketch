@@ -1,9 +1,11 @@
 import 'dart:ui' as ui;
+import 'package:flexi_sketch/src/config/flexi_sketch_size_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
 import '../objects/image_object.dart';
+import 'flexi_sketch_size_helper.dart';
 
 /// Uint8List の画像データから ImageObject や FlexiSketch の初期データを生成するヘルパークラス
 class FlexiSketchDataHelper {
@@ -16,8 +18,8 @@ class FlexiSketchDataHelper {
     Uint8List imageData, {
     double? width,
     double? height,
+    FlexiSketchSizeConfig config = FlexiSketchSizeConfig.defaultConfig,
   }) async {
-    // 一時的なコントローラを作成
     final controller = FlexiSketchController();
 
     try {
@@ -25,22 +27,33 @@ class FlexiSketchDataHelper {
       final decodedImage = await decodeImageFromBytes(imageData);
 
       // キャンバスサイズの設定
-      // FIXME: 画像サイズをもとに画像を貼付する処理は共通化できそう(FlexiSketchController#addImageFromBytes の画像の貼付位置も現在描画しているキャンバス領域の中心などに調整する必要がある)
-      final canvasWidth = width ?? decodedImage.width.toDouble();
-      final canvasHeight = height ?? decodedImage.height.toDouble();
-      controller.updateCanvasSize(Size(canvasWidth, canvasHeight));
+      final imageSize = Size(
+        decodedImage.width.toDouble(),
+        decodedImage.height.toDouble(),
+      );
+      final canvasSize = width != null && height != null
+          ? Size(width, height)
+          : FlexiSketchSizeHelper.calculateCanvasSize(imageSize: imageSize, config: config);
+      controller.updateCanvasSize(canvasSize);
 
-      // 画像オブジェクトを生成してコントローラに追加
+      // 画像の表示サイズを計算
+      final displaySize = FlexiSketchSizeHelper.calculateDisplaySize(
+        imageSize: imageSize,
+        canvasSize: canvasSize,
+        config: config,
+      );
+
+      // 画像オブジェクトを生成
       final imageObject = createImageObject(
         image: decodedImage,
-        center: getCanvasCenter(Size(canvasWidth, canvasHeight)),
+        center: getCanvasCenter(canvasSize),
+        size: displaySize,
       );
       controller.objects.add(imageObject);
 
-      // コントローラを使用してJSONデータを生成
+      // JSONデータを生成
       return await controller.generateJsonData();
     } finally {
-      // 一時的なコントローラを破棄
       controller.dispose();
     }
   }
