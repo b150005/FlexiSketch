@@ -312,15 +312,7 @@ class _TestScreenState extends State<TestScreen> {
         final bytes = await pickedFile.readAsBytes();
 
         // 画像データをFlexiSketchに読み込み
-        final image = await FlexiSketchDataHelper.decodeImageFromBytes(bytes);
-        final imageObject = FlexiSketchDataHelper.createImageObject(
-          image: image,
-          center: _controller.getCanvasCenter(),
-        );
-        _controller.objects.add(imageObject);
-
-        // FlexiSketch の現在の状態を JSON として取得
-        final jsonData = await _controller.generateJsonData();
+        final jsonData = await FlexiSketchDataHelper.createInitialDataFromImage(bytes);
 
         setState(() {
           _currentData = jsonData;
