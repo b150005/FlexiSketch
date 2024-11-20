@@ -163,6 +163,9 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// ツールバーの上部にあるドラッグハンドルを構築する
+  ///
+  /// 上方向へのドラッグジェスチャーを検知し、ツールバーの表示/非表示を切り替える
   Widget _buildToolbarHandle() {
     return GestureDetector(
       onVerticalDragEnd: (details) {
@@ -181,6 +184,9 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// ファイル操作関連のツールグループを構築する
+  ///
+  /// 画像保存、データ保存、画像のアップロード、画像の貼り付けなどのファイル操作に関連するツールボタンを提供する
   Widget _buildFileTools() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -228,6 +234,9 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// 描画ツールグループを構築する
+  ///
+  /// ペン、消しゴム、図形描画、色の選択、線の太さの設定など、描画に関連するツールボタンを提供する
   Widget _buildDrawingTools() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -288,6 +297,9 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// 編集ツールグループを構築する
+  ///
+  /// 元に戻す、やり直す、全て消去などの編集操作に関連するツールボタンを提供する
   Widget _buildEditingTools() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -319,6 +331,10 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// カラーパレットを構築する
+  ///
+  /// 定義済みの色から選択できるパレットを提供する
+  /// ToolButtonと同じサイズ・デザインで統一感のある表示を行う
   Widget _buildColorPalette() {
     return SizedBox(
       height: 36, // ToolButtonと同じ高さ
@@ -352,6 +368,11 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// ツールボタンのグループを構築する
+  ///
+  /// 複数のツールボタンをグループ化し、適切な間隔を設定する
+  ///
+  /// [children] グループ化するウィジェットのリスト
   Widget _buildToolGroup(List<Widget> children) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -368,6 +389,9 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// ツールグループ間の縦線を構築する
+  ///
+  /// ツールグループを視覚的に区切るための装飾的な区切り線を提供する
   Widget _buildVerticalDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -381,12 +405,14 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// カラーピッカーの表示状態を切り替える
   void _toggleColorPicker() {
     setState(() {
       _isColorPickerExpanded = !_isColorPickerExpanded;
     });
   }
 
+  /// コントローラの状態変更をUIに反映する
   void _onControllerChanged() {
     setState(() {});
   }

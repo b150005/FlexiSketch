@@ -561,6 +561,11 @@ class FlexiSketchController extends ChangeNotifier {
     );
   }
 
+  /// JSONデータからスケッチを読み込む
+  ///
+  /// [json] 読み込むJSONデータ。キャンバス情報とオブジェクト情報を含む
+  ///
+  /// エラーが発生した場合は [_notifyError] を通じてエラーメッセージが通知される
   Future<void> loadFromJson(Map<String, dynamic> json) async {
     try {
       _objects.clear();
