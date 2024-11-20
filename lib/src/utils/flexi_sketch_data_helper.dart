@@ -9,6 +9,51 @@ import 'flexi_sketch_size_helper.dart';
 
 /// Uint8List の画像データから ImageObject や FlexiSketch の初期データを生成するヘルパークラス
 class FlexiSketchDataHelper {
+  /// 画像データから ImageObject を生成する
+  ///
+  /// 返却値は生成された ImageObject と、計算されたキャンバスサイズのタプル
+  ///
+  /// [imageData] 画像のバイトデータ
+  /// [config] サイズ調整の設定
+  /// [canvasSize] キャンバスのサイズ（省略時は画像サイズから計算）
+  static Future<(ImageObject, Size)> createImageObjectFromBytes(
+    Uint8List imageData, {
+    FlexiSketchSizeConfig config = FlexiSketchSizeConfig.defaultConfig,
+    Size? canvasSize,
+  }) async {
+    // 画像をデコード
+    final decodedImage = await decodeImageFromBytes(imageData);
+
+    // 画像の元サイズを取得
+    final imageSize = Size(
+      decodedImage.width.toDouble(),
+      decodedImage.height.toDouble(),
+    );
+
+    // キャンバスサイズの決定
+    final effectiveCanvasSize = canvasSize ??
+        FlexiSketchSizeHelper.calculateCanvasSize(
+          imageSize: imageSize,
+          config: config,
+        );
+
+    // 画像の表示サイズを計算
+    final displaySize = FlexiSketchSizeHelper.calculateDisplaySize(
+      imageSize: imageSize,
+      canvasSize: effectiveCanvasSize,
+      config: config,
+    );
+
+    // 画像オブジェクトを生成
+    final imageObject = createImageObject(
+      image: decodedImage,
+      center: getCanvasCenter(effectiveCanvasSize),
+      size: displaySize,
+    );
+
+    return (imageObject, effectiveCanvasSize);
+  }
+
   /// 画像データから FlexiSketch の初期データを生成する
   ///
   /// [imageData] 画像のバイトデータ
@@ -23,32 +68,17 @@ class FlexiSketchDataHelper {
     final controller = FlexiSketchController();
 
     try {
-      // 画像をデコード
-      final decodedImage = await decodeImageFromBytes(imageData);
+      final canvasSize = width != null && height != null ? Size(width, height) : null;
 
-      // キャンバスサイズの設定
-      final imageSize = Size(
-        decodedImage.width.toDouble(),
-        decodedImage.height.toDouble(),
-      );
-      final canvasSize = width != null && height != null
-          ? Size(width, height)
-          : FlexiSketchSizeHelper.calculateCanvasSize(imageSize: imageSize, config: config);
-      controller.updateCanvasSize(canvasSize);
-
-      // 画像の表示サイズを計算
-      final displaySize = FlexiSketchSizeHelper.calculateDisplaySize(
-        imageSize: imageSize,
-        canvasSize: canvasSize,
+      // 画像オブジェクトの生成
+      final (imageObject, effectiveCanvasSize) = await createImageObjectFromBytes(
+        imageData,
         config: config,
+        canvasSize: canvasSize,
       );
 
-      // 画像オブジェクトを生成
-      final imageObject = createImageObject(
-        image: decodedImage,
-        center: getCanvasCenter(canvasSize),
-        size: displaySize,
-      );
+      // コントローラの設定
+      controller.updateCanvasSize(effectiveCanvasSize);
       controller.objects.add(imageObject);
 
       // JSONデータを生成

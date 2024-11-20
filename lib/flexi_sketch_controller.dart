@@ -17,7 +17,6 @@ import 'src/storage/sketch_data.dart';
 import 'src/tools/drawing_tool.dart';
 import 'src/tools/shape_tool.dart';
 import 'src/utils/flexi_sketch_data_helper.dart';
-import 'src/utils/flexi_sketch_size_helper.dart';
 
 class FlexiSketchController extends ChangeNotifier {
   /// 選択中の描画ツール
@@ -428,34 +427,11 @@ class FlexiSketchController extends ChangeNotifier {
     FlexiSketchSizeConfig config = FlexiSketchSizeConfig.defaultConfig,
   }) async {
     try {
-      // 画像をデコード
-      final image = await FlexiSketchDataHelper.decodeImageFromBytes(imageData);
-
-      // 画像の元サイズを取得
-      final imageSize = Size(
-        image.width.toDouble(),
-        image.height.toDouble(),
-      );
-
-      // 現在のキャンバスサイズまたは画像サイズから計算したサイズを使用
-      final canvasSize = _canvasSize ??
-          FlexiSketchSizeHelper.calculateCanvasSize(
-            imageSize: imageSize,
-            config: config,
-          );
-
-      // 画像の表示サイズを計算
-      final displaySize = FlexiSketchSizeHelper.calculateDisplaySize(
-        imageSize: imageSize,
-        canvasSize: canvasSize,
+      // 画像オブジェクトの生成
+      final (imageObject, _) = await FlexiSketchDataHelper.createImageObjectFromBytes(
+        imageData,
         config: config,
-      );
-
-      // 画像オブジェクトを生成
-      final imageObject = FlexiSketchDataHelper.createImageObject(
-        image: image,
-        center: getCanvasCenter(),
-        size: displaySize,
+        canvasSize: _canvasSize,
       );
 
       // 履歴に追加して画像を配置
@@ -467,15 +443,6 @@ class FlexiSketchController extends ChangeNotifier {
       _notifyError('画像の追加中にエラーが発生しました: $e');
       rethrow;
     }
-  }
-
-  /// キャンバスの中心座標を取得する
-  Offset getCanvasCenter() {
-    if (_canvasSize == null) {
-      return const Offset(0, 0);
-    }
-
-    return FlexiSketchDataHelper.getCanvasCenter(_canvasSize!);
   }
 
   /* 保存処理 */
