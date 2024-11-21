@@ -1,9 +1,10 @@
 import 'dart:ui' as ui;
-import 'package:flexi_sketch/src/config/flexi_sketch_size_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
+import '../config/flexi_sketch_size_config.dart';
+import '../loading/image_loading_state.dart';
 import '../objects/image_object.dart';
 import 'flexi_sketch_size_helper.dart';
 
@@ -64,10 +65,17 @@ class FlexiSketchDataHelper {
     double? width,
     double? height,
     FlexiSketchSizeConfig config = FlexiSketchSizeConfig.defaultConfig,
+    ProgressCallback? onProgress,
   }) async {
     final controller = FlexiSketchController();
 
     try {
+      onProgress?.call(ImageLoadingState(
+        progress: 0.0,
+        phase: ImageLoadingPhase.decoding,
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
       final canvasSize = width != null && height != null ? Size(width, height) : null;
 
       // 画像オブジェクトの生成
@@ -77,12 +85,47 @@ class FlexiSketchDataHelper {
         canvasSize: canvasSize,
       );
 
+      onProgress?.call(ImageLoadingState(
+        progress: 0.023,
+        phase: ImageLoadingPhase.creating,
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
       // コントローラの設定
       controller.updateCanvasSize(effectiveCanvasSize);
       controller.objects.add(imageObject);
 
+      onProgress?.call(ImageLoadingState(
+        progress: 0.046,
+        phase: ImageLoadingPhase.serializing,
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
       // JSONデータを生成
-      return await controller.generateJsonData();
+      final result = await controller.generateJsonData(
+        null, // metadata
+        (progress) async {
+          // 4.6%から100%までの範囲で進捗を通知
+          final totalProgress = 0.046 + (progress * 0.954);
+          onProgress?.call(ImageLoadingState(
+            progress: totalProgress,
+            phase: ImageLoadingPhase.serializing,
+          ));
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        },
+      );
+
+      onProgress?.call(ImageLoadingState(
+        progress: 1.0,
+        phase: ImageLoadingPhase.completed,
+      ));
+      // 完了 UI は表示されなくても問題ないのでコメントアウト
+      // await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      return result;
+    } catch (e) {
+      onProgress?.call(ImageLoadingState.withError(e));
+      rethrow;
     } finally {
       controller.dispose();
     }

@@ -448,10 +448,40 @@ class FlexiSketchController extends ChangeNotifier {
   /* 保存処理 */
 
   /// キャンバスの内容を JSON データとして生成します
-  Future<Map<String, dynamic>> generateJsonData([SketchMetadata? metadata]) async {
+  Future<Map<String, dynamic>> generateJsonData([
+    SketchMetadata? metadata,
+    void Function(double progress)? onProgress,
+  ]) async {
     try {
-      // 各オブジェクトのシリアライズを並行処理
-      final serializedObjects = await Future.wait(_objects.map((obj) => DrawableObjectSerializer.instance.toJson(obj)));
+      final totalObjects = _objects.length;
+      if (totalObjects == 0) {
+        onProgress?.call(1.0);
+        return {
+          'metadata': metadata?.toJson() ?? SketchMetadata.create('Untitled Sketch').toJson(),
+          'content': {
+            'version': 1,
+            'canvas': {
+              'width': _canvasSize?.width ?? 0,
+              'height': _canvasSize?.height ?? 0,
+            },
+            'objects': [],
+          },
+        };
+      }
+
+      // 各オブジェクトのシリアライズを個別に実行して進捗を監視
+      final serializedObjects = <Map<String, dynamic>>[];
+      var completedObjects = 0;
+
+      // オブジェクトごとに順次シリアライズ
+      for (final object in _objects) {
+        final json = await DrawableObjectSerializer.instance.toJson(object);
+        serializedObjects.add(json);
+
+        completedObjects++;
+        final progress = completedObjects / totalObjects;
+        onProgress?.call(progress);
+      }
 
       final content = {
         'version': 1,
