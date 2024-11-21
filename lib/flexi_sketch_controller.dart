@@ -453,6 +453,8 @@ class FlexiSketchController extends ChangeNotifier {
     void Function(double progress)? onProgress,
   ]) async {
     try {
+      onProgress?.call(0.01);
+
       final totalObjects = _objects.length;
       if (totalObjects == 0) {
         onProgress?.call(1.0);

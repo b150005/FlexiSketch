@@ -50,6 +50,10 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
   /// このコントローラを通じて、描画ツールの選択、色の変更、Undo/Redoなどの操作を行うことができます。
   FlexiSketchController get controller => _controller;
 
+  // 保存処理用の進捗状態
+  bool _isSaving = false;
+  double _saveProgress = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -106,11 +110,71 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
                 child: Center(
                   child: Toolbar(
                     controller: _controller,
-                    onSaveAsImage: widget.onSaveAsImage,
-                    onSaveAsData: widget.onSaveAsData,
+                    onSaveAsImage: widget.onSaveAsImage != null
+                        ? (imageData) async {
+                            setState(() {
+                              _isSaving = true;
+                              _saveProgress = 0.0;
+                            });
+
+                            try {
+                              await widget.onSaveAsImage!(imageData);
+                            } finally {
+                              setState(() {
+                                _isSaving = false;
+                              });
+                            }
+                          }
+                        : null,
+                    onSaveAsData: widget.onSaveAsData != null
+                        ? (jsonData, imageData, progress) async {
+                            setState(() {
+                              _isSaving = true;
+                              _saveProgress = progress;
+                            });
+
+                            try {
+                              await widget.onSaveAsData!(jsonData, imageData, progress);
+                            } finally {
+                              if (progress >= 1.0) {
+                                setState(() {
+                                  _isSaving = false;
+                                });
+                              }
+                            }
+                          }
+                        : null,
                   ),
                 ),
               ),
+              // 保存中のプログレスインジケーター
+              if (_isSaving)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black54,
+                    child: Center(
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(
+                                value: _saveProgress,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text('保存中...'),
+                              Text(
+                                '${(_saveProgress * 100).toStringAsFixed(0)}%',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

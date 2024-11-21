@@ -96,26 +96,36 @@ class _TestScreenState extends State<TestScreen> {
                       _errorMessage = null;
                     });
                   },
-                  onSaveAsData: (jsonData, imageData) async {
-                    final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
-                    setState(() {
-                      _currentData = jsonData;
-                      _pendingData = jsonData; // 保存時は pending も更新
-                      _jsonController.text = jsonString;
-                    });
-                    await Clipboard.setData(ClipboardData(text: jsonString));
+                  onSaveAsData: (jsonData, imageData, progress) async {
+                    if (jsonData == null || imageData == null) {
+                      return;
+                    }
 
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('JSONをクリップボードにコピーしました'),
-                        duration: Duration(seconds: 1),
-                      ),
-                    );
+                    setState(() {
+                      _generatedImage = Image.memory(imageData);
+                      _errorMessage = null;
+                    });
+
+                    // DEBUG: 重くなるのでコメントアウト
+                    // final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
+                    // setState(() {
+                    //   _currentData = jsonData;
+                    //   _pendingData = jsonData; // 保存時は pending も更新
+                    //   _jsonController.text = jsonString;
+                    // });
+                    // await Clipboard.setData(ClipboardData(text: jsonString));
+                    // if (!context.mounted) return;
+                    // ScaffoldMessenger.of(context).showSnackBar(
+                    //   const SnackBar(
+                    //     content: Text('JSONをクリップボードにコピーしました'),
+                    //     duration: Duration(seconds: 1),
+                    //   ),
+                    // );
                   },
                   onError: (message) {
                     setState(() {
                       _errorMessage = message;
+                      _loadingState = null;
                     });
                   },
                 ),

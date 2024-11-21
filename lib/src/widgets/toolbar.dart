@@ -207,11 +207,22 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
               ToolButton(
                 icon: Icons.save,
                 onPressed: () async {
-                  // JSON データの生成
-                  final jsonData = await widget.controller.generateJsonData();
+                  // 初期状況の通知
+                  await widget.onSaveAsData!(null, null, 0.01);
+                  await Future<void>.delayed(const Duration(milliseconds: 50));
+
+                  // JSONデータ生成中は進捗状況を通知
+                  final jsonData = await widget.controller.generateJsonData(
+                    null,
+                    // 画像データの生成が残っているので progress = 1 の場合は進捗状況を 99% とする
+                    (progress) => widget.onSaveAsData!(null, null, progress == 1 ? 0.99 : progress),
+                  );
+
                   // 画像データの生成
                   final imageData = await widget.controller.generateImageData();
-                  widget.onSaveAsData!(jsonData, imageData);
+
+                  widget.onSaveAsData!(jsonData, imageData, 1.0);
+                  // await Future<void>.delayed(const Duration(milliseconds: 50));
                 },
                 tooltip: 'データとして保存',
               ),
