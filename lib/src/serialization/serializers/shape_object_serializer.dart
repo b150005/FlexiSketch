@@ -15,13 +15,13 @@ class ShapeObjectSerializer implements ObjectSerializer<ShapeObject> {
     final shapeData = json['shape'] as Map<String, dynamic>;
 
     final startPoint = Offset(
-      shapeData['startPoint']['x'] as double,
-      shapeData['startPoint']['y'] as double,
+      (shapeData['startPoint']['x'] as num).toDouble(),
+      (shapeData['startPoint']['y'] as num).toDouble(),
     );
 
     final endPoint = Offset(
-      shapeData['endPoint']['x'] as double,
-      shapeData['endPoint']['y'] as double,
+      (shapeData['endPoint']['x'] as num).toDouble(),
+      (shapeData['endPoint']['y'] as num).toDouble(),
     );
 
     final shapeType = ShapeType.values.firstWhere(
@@ -31,7 +31,7 @@ class ShapeObjectSerializer implements ObjectSerializer<ShapeObject> {
     final paintData = shapeData['paint'] as Map<String, dynamic>;
     final paint = Paint()
       ..color = Color(paintData['color'] as int)
-      ..strokeWidth = paintData['strokeWidth'] as double
+      ..strokeWidth = (paintData['strokeWidth'] as num).toDouble()
       ..style = PaintingStyle.stroke
       ..blendMode = BlendMode.values.firstWhere(
         (mode) => mode.toString() == paintData['blendMode'],

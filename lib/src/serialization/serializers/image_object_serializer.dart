@@ -18,8 +18,8 @@ class ImageObjectSerializer implements ObjectSerializer<ImageObject> {
     final encodedData = imageData['data'] as String;
 
     final size = Size(
-      imageData['size']['width'] as double,
-      imageData['size']['height'] as double,
+      (imageData['size']['width'] as num).toDouble(),
+      (imageData['size']['height'] as num).toDouble(),
     );
 
     // Base64エンコードされた画像データをデコード

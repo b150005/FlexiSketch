@@ -14,8 +14,8 @@ class PathObjectSerializer implements ObjectSerializer<PathObject> {
     final pathData = json['path'] as Map<String, dynamic>;
     final points = (pathData['points'] as List<dynamic>)
         .map((point) => Offset(
-              point['x'] as double,
-              point['y'] as double,
+              (point['x'] as num).toDouble(),
+              (point['y'] as num).toDouble(),
             ))
         .toList();
 
@@ -29,7 +29,7 @@ class PathObjectSerializer implements ObjectSerializer<PathObject> {
 
     final paint = Paint()
       ..color = Color(pathData['paint']['color'] as int)
-      ..strokeWidth = pathData['paint']['strokeWidth'] as double
+      ..strokeWidth = (pathData['paint']['strokeWidth'] as num).toDouble()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;

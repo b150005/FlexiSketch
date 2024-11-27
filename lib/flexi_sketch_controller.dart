@@ -609,8 +609,8 @@ class FlexiSketchController extends ChangeNotifier {
       // キャンバスサイズの復元
       final canvas = json['canvas'] as Map<String, dynamic>;
       _canvasSize = Size(
-        canvas['width'] as double,
-        canvas['height'] as double,
+        (canvas['width'] as num).toDouble(),
+        (canvas['height'] as num).toDouble(),
       );
 
       // オブジェクトの復元

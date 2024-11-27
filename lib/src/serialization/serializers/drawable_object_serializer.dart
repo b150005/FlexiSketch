@@ -87,11 +87,11 @@ class DrawableObjectSerializer extends ObjectSerializer<DrawableObject> {
     // 共通プロパティの復元
     if (object is DrawableObject) {
       object.globalCenter = Offset(
-        properties['globalCenter']['x'] as double,
-        properties['globalCenter']['y'] as double,
+        (properties['globalCenter']['x'] as num).toDouble(),
+        (properties['globalCenter']['y'] as num).toDouble(),
       );
-      object.rotation = properties['rotation'] as double;
-      object.scale = properties['scale'] as double;
+      object.rotation = (properties['rotation'] as num).toDouble();
+      object.scale = (properties['scale'] as num).toDouble();
       return object;
     }
 
