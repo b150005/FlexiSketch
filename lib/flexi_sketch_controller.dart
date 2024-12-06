@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flexi_sketch/src/config/flexi_sketch_size_config.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -17,6 +19,7 @@ import 'src/storage/sketch_data.dart';
 import 'src/tools/drawing_tool.dart';
 import 'src/tools/shape_tool.dart';
 import 'src/utils/flexi_sketch_data_helper.dart';
+import 'src/widgets/icon_list_tile.dart';
 
 class FlexiSketchController extends ChangeNotifier {
   /// 選択中の描画ツール
@@ -415,6 +418,120 @@ class FlexiSketchController extends ChangeNotifier {
     } catch (e) {
       _notifyError('画像の取得中にエラーが発生しました: $e');
       rethrow;
+    }
+  }
+
+  /// 画像ピッカーを表示し、選択された画像をキャンバスに追加します
+  ///
+  /// モバイル端末(iOS/Android)の場合は、カメラ/ギャラリーの選択用ボトムシートを表示します。
+  /// デスクトップ/Webの場合は、直接ファイル選択ダイアログを表示します。
+  ///
+  /// 権限エラーや画像の読み込みエラーが発生した場合は、[_notifyError]を通じてエラーメッセージが通知され、
+  /// 例外がスローされます。
+  ///
+  /// [context] 画像ピッカーを表示するためのBuildContext
+  void showImagePickerAndAddImage(BuildContext context) async {
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      // モバイル端末の場合はボトムシートを表示
+      final ImageSource? source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (BuildContext context) {
+          return Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 32,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                IconListTile(
+                  icon: Icons.photo_library,
+                  title: 'カメラロールから選択',
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+                IconListTile(
+                  icon: Icons.camera_alt,
+                  title: 'カメラで撮影',
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                const SizedBox(height: 8),
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('キャンセル'),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (source == null) return;
+
+      try {
+        await pickAndAddImage(source);
+      } catch (e) {
+        if (!context.mounted) return;
+
+        // エラーダイアログを表示
+        await showDialog<void>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              title: const Text('エラー'),
+              content: Text(
+                e.toString().contains('permission')
+                    ? '画像へのアクセス権限が必要です。\n設定からアプリの権限を変更することができます。'
+                    : '画像の取得中にエラーが発生しました。',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } else {
+      // デスクトップまたはWebの場合は既存の処理を使用
+      await pickAndAddImage();
     }
   }
 
