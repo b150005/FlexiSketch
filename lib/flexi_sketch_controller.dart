@@ -385,20 +385,36 @@ class FlexiSketchController extends ChangeNotifier {
     onError?.call(message);
   }
 
-  /// 画像ファイルを選択してキャンバスに追加する
+  /// 画像を取得してキャンバスに追加する
   ///
-  /// ファイル選択ダイアログを表示し、選択された画像をキャンバスに追加します。
-  Future<void> pickAndAddImage() async {
+  /// [source] 画像の取得方法（カメラ/ギャラリー）
+  /// エラーが発生した場合は [_notifyError] を通じてエラーメッセージが通知される
+  Future<void> pickAndAddImage([ImageSource? source]) async {
     try {
       final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      final XFile? pickedFile = await (source != null
+          ? picker.pickImage(
+              source: source,
+              imageQuality: 80,
+              maxWidth: 1920,
+              maxHeight: 1920,
+            )
+          : picker.pickImage(source: ImageSource.gallery));
 
       if (pickedFile != null) {
         final bytes = await pickedFile.readAsBytes();
         await addImageFromBytes(bytes);
       }
+    } on PlatformException catch (e) {
+      if (e.code == 'photo_access_denied' || e.code == 'camera_access_denied') {
+        _notifyError('画像へのアクセス権限が必要です。\n設定からアプリの権限を変更することができます。');
+      } else {
+        _notifyError('画像の取得中にエラーが発生しました: ${e.message}');
+      }
+      rethrow;
     } catch (e) {
-      _notifyError('画像の選択中にエラーが発生しました: $e');
+      _notifyError('画像の取得中にエラーが発生しました: $e');
+      rethrow;
     }
   }
 

@@ -1,4 +1,8 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../flexi_sketch_controller.dart';
 import '../handlers/save_handler.dart';
@@ -6,6 +10,7 @@ import '../tools/eraser_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/shape_tool.dart';
 import 'color_button.dart';
+import 'icon_list_tile.dart';
 import 'stroke_width_button.dart';
 import 'tool_button.dart';
 
@@ -232,7 +237,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
             ToolButton(
               icon: Icons.upload_file,
               tooltip: '画像をアップロード',
-              onPressed: widget.controller.pickAndAddImage,
+              onPressed: _handleImagePickerTap,
             ),
             ToolButton(
               icon: Icons.paste,
@@ -243,6 +248,112 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         ],
       ),
     );
+  }
+
+  /// 画像選択ボタンをタップしたときの処理
+  void _handleImagePickerTap() async {
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      // モバイル端末の場合はボトムシートを表示
+      final ImageSource? source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (BuildContext context) {
+          return Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 32,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                IconListTile(
+                  icon: Icons.photo_library,
+                  title: 'カメラロールから選択',
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+                IconListTile(
+                  icon: Icons.camera_alt,
+                  title: 'カメラで撮影',
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                const SizedBox(height: 8),
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('キャンセル'),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (source == null) return;
+
+      try {
+        await widget.controller.pickAndAddImage(source);
+      } catch (e) {
+        if (!mounted) return;
+
+        // エラーダイアログを表示
+        await showDialog<void>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              title: const Text('エラー'),
+              content: Text(
+                e.toString().contains('permission')
+                    ? '画像へのアクセス権限が必要です。\n設定からアプリの権限を変更することができます。'
+                    : '画像の取得中にエラーが発生しました。',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } else {
+      // デスクトップまたはWebの場合は既存の処理を使用
+      await widget.controller.pickAndAddImage();
+    }
   }
 
   /// 描画ツールグループを構築する
