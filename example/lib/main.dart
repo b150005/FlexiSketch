@@ -89,6 +89,7 @@ class _TestScreenState extends State<TestScreen> {
               Expanded(
                 flex: 2,
                 child: FlexiSketchWidget(
+                  controller: _controller,
                   data: _currentData?['content'],
                   onSaveAsImage: (imageData) async {
                     setState(() {

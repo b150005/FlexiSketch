@@ -12,6 +12,11 @@ import 'toolbar.dart';
 /// キャンバス・ツールバー・カラーパレット・線幅スライダーなどを含みます。
 /// 状態管理は [controller] で行い、保存処理は [saveAsImage] と [saveAsData] で定義します。
 class FlexiSketchWidget extends StatefulWidget {
+  /// スケッチの状態を管理するコントローラ
+  ///
+  /// このコントローラを通じて、描画ツールの選択、色の変更、Undo/Redoなどの操作を行うことができます。
+  final FlexiSketchController controller;
+
   /// 画像として保存する際のコールバック
   final SaveSketchAsImage? onSaveAsImage;
 
@@ -29,6 +34,7 @@ class FlexiSketchWidget extends StatefulWidget {
   /// [controller] は必須で、スケッチの状態管理を行います。
   const FlexiSketchWidget({
     super.key,
+    required this.controller,
     this.onSaveAsImage,
     this.onSaveAsData,
     this.data,
@@ -40,16 +46,6 @@ class FlexiSketchWidget extends StatefulWidget {
 }
 
 class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandler {
-  /// スケッチの状態を管理するコントローラ
-  ///
-  /// このコントローラを通じて、描画ツールの選択、色の変更、Undo/Redoなどの操作を行うことができます。
-  final FlexiSketchController _controller = FlexiSketchController();
-
-  /// スケッチの状態を管理するコントローラ
-  ///
-  /// このコントローラを通じて、描画ツールの選択、色の変更、Undo/Redoなどの操作を行うことができます。
-  FlexiSketchController get controller => _controller;
-
   // 保存処理用の進捗状態
   bool _isSaving = false;
   double _saveProgress = 0.0;
@@ -57,7 +53,7 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
   @override
   void initState() {
     super.initState();
-    _controller.onError = widget.onError;
+    widget.controller.onError = widget.onError;
     _initializeWithData();
   }
 
@@ -67,7 +63,7 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
     if (widget.data != oldWidget.data) {
       _initializeWithData();
     }
-    _controller.onError = widget.onError;
+    widget.controller.onError = widget.onError;
   }
 
   @override
@@ -81,10 +77,10 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
   Widget build(BuildContext context) {
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _controller.undo,
-        const SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true): _controller.redo,
-        const SingleActivator(LogicalKeyboardKey.keyY, control: true): _controller.redo,
-        const SingleActivator(LogicalKeyboardKey.keyV, control: true): _controller.pasteImageFromClipboard,
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): widget.controller.undo,
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true): widget.controller.redo,
+        const SingleActivator(LogicalKeyboardKey.keyY, control: true): widget.controller.redo,
+        const SingleActivator(LogicalKeyboardKey.keyV, control: true): widget.controller.pasteImageFromClipboard,
       },
       child: Focus(
         autofocus: true,
@@ -95,11 +91,11 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
               LayoutBuilder(
                 builder: (context, constraints) {
                   // キャンバスサイズの更新
-                  _controller.updateCanvasSize(Size(
+                  widget.controller.updateCanvasSize(Size(
                     constraints.maxWidth,
                     constraints.maxHeight,
                   ));
-                  return InfiniteCanvas(controller: _controller);
+                  return InfiniteCanvas(controller: widget.controller);
                 },
               ),
               // ツールバー
@@ -109,7 +105,7 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
                 bottom: 0,
                 child: Center(
                   child: Toolbar(
-                    controller: _controller,
+                    controller: widget.controller,
                     onSaveAsImage: widget.onSaveAsImage != null
                         ? (imageData) async {
                             setState(() {
@@ -185,7 +181,7 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
   Future<void> _initializeWithData() async {
     if (widget.data != null) {
       try {
-        await _controller.loadFromJson(widget.data!);
+        await widget.controller.loadFromJson(widget.data!);
       } catch (e) {
         widget.onError?.call('データの読み込みに失敗しました: $e');
       }
