@@ -1,8 +1,4 @@
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../flexi_sketch_controller.dart';
 import '../handlers/save_handler.dart';
@@ -10,7 +6,6 @@ import '../tools/eraser_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/shape_tool.dart';
 import 'color_button.dart';
-import 'icon_list_tile.dart';
 import 'stroke_width_button.dart';
 import 'tool_button.dart';
 
