@@ -73,6 +73,9 @@ class FlexiSketchController extends ChangeNotifier {
   /// 選択中のオブジェクトが画像かどうか
   bool get isImageSelected => _selectedObject is ImageObject;
 
+  /// 変形開始時の状態を保持
+  DrawableObject? _transformStartState;
+
   /// エラー通知用のコールバック関数
   void Function(String message)? onError;
 
@@ -125,13 +128,20 @@ class FlexiSketchController extends ChangeNotifier {
     if (!canUndo) return;
 
     final entry = _undoStack.removeLast();
+
+    // 現在の状態を Redo スタックに保存（深いコピーを作成）
     _redoStack.add(HistoryEntry(
-      objects: List.from(_objects),
+      objects: _objects.map((obj) => obj.clone()).toList(),
       type: entry.type,
     ));
 
+    // 選択状態をクリア
+    clearSelection();
+
+    // オブジェクトを履歴の状態に置き換え（各オブジェクトは既にclone済み）
     _objects.clear();
-    _objects.addAll(List.from(entry.objects));
+    _objects.addAll(entry.objects);
+
     notifyListeners();
   }
 
@@ -140,25 +150,39 @@ class FlexiSketchController extends ChangeNotifier {
     if (!canRedo) return;
 
     final entry = _redoStack.removeLast();
+
+    // 現在の状態を Undo スタックに保存（深いコピーを作成）
     _undoStack.add(HistoryEntry(
-      objects: List.from(_objects),
+      objects: _objects.map((obj) => obj.clone()).toList(),
       type: entry.type,
     ));
 
+    // 選択状態をクリア
+    clearSelection();
+
+    // オブジェクトを履歴の状態に置き換え（各オブジェクトは既にclone済み）
     _objects.clear();
-    _objects.addAll(List.from(entry.objects));
+    _objects.addAll(entry.objects);
+
     notifyListeners();
   }
 
   /// 履歴に操作を追加する
   ///
   /// [type] 履歴エントリの種類
-  void _addToHistory(HistoryEntryType type) {
+  void _addToHistory(
+    HistoryEntryType type, {
+    bool clearRedoStack = true,
+  }) {
+    // 現在の状態を Undo スタックに保存（深いコピーを作成）
     _undoStack.add(HistoryEntry(
-      objects: List.from(_objects),
+      objects: _objects.map((obj) => obj.clone()).toList(),
       type: type,
     ));
-    _redoStack.clear();
+
+    if (clearRedoStack) {
+      _redoStack.clear();
+    }
     notifyListeners();
   }
 
@@ -312,26 +336,30 @@ class FlexiSketchController extends ChangeNotifier {
     }
   }
 
-  /// オブジェクトを選択する
-  void selectObject(Offset point) {
-    // ツール使用中は選択を無効化
-    if (_currentTool != null) return;
-
-    // 選択済みオブジェクトがあればその選択状態を解除
-    if (_selectedObject != null) {
-      _selectedObject!.isSelected = false;
-    }
-
-    _selectedObject = null;
-
+  /// 指定された点にある描画オブジェクトを取得する
+  ///
+  /// [point] 判定する点の座標
+  /// Returns: 点が領域内にあるオブジェクト。領域内にオブジェクトがない場合は `null`
+  DrawableObject? hitTest(Offset point) {
     // 最前面のオブジェクトから順に判定
     for (final object in _objects.reversed) {
       if (object.containsPoint(point)) {
-        _selectedObject = object;
-        object.isSelected = true;
-        break;
+        return object;
       }
     }
+    return null;
+  }
+
+  /// オブジェクトを選択する
+  void selectObject(Offset point) {
+    // 選択済みオブジェクトがあればその選択状態を解除
+    clearSelection();
+
+    // ツール使用中は選択を無効化
+    if (_currentTool != null) return;
+
+    _selectedObject = hitTest(point);
+    _selectedObject?.isSelected = true;
 
     notifyListeners();
   }
@@ -352,6 +380,33 @@ class FlexiSketchController extends ChangeNotifier {
       _objects.remove(_selectedObject);
       _selectedObject = null;
       notifyListeners();
+    }
+  }
+
+  /// 変形操作を開始する
+  ///
+  /// 現在選択中のオブジェクトの状態を保存します。
+  void beginTransform() {
+    if (_selectedObject != null) {
+      _transformStartState = _selectedObject!.clone();
+      // 実際に位置、回転、スケールのいずれかが変更されるかは保留し、現在の状態を Undo スタックに仮保存する
+      // ただし、変更がない場合のことも考慮し Redo スタックは初期化しない
+      _addToHistory(HistoryEntryType.transform, clearRedoStack: false);
+    }
+  }
+
+  /// 変形操作を終了する
+  ///
+  /// 変形前後で状態が変化している場合のみ履歴に追加します。
+  void endTransform() {
+    if (_selectedObject != null && _transformStartState != null) {
+      // 位置、回転、スケールのいずれも変化していない場合は Undo スタックに仮保存した操作開始時の状態を削除する
+      if (_selectedObject!.globalCenter == _transformStartState!.globalCenter &&
+          _selectedObject!.rotation == _transformStartState!.rotation &&
+          _selectedObject!.scale == _transformStartState!.scale) {
+        _undoStack.removeLast();
+      }
+      _transformStartState = null;
     }
   }
 

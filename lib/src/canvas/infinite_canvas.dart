@@ -175,21 +175,32 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
     _lastFocalPoint = details.localFocalPoint;
     // スケールの初期値を設定
     _lastScale = 1.0;
-    _isDragging = true;
 
-    if (details.pointerCount == 1) {
-      // 焦点位置をシーン座標に変換
-      final localPosition = _transformationController.toScene(details.localFocalPoint);
+    if (details.pointerCount != 1) return;
 
-      if (widget.controller.isToolSelected) {
-        widget.controller.startDrawing(localPosition);
+    // 焦点位置をシーン座標に変換
+    final localPosition = _transformationController.toScene(details.localFocalPoint);
+
+    if (widget.controller.isToolSelected) {
+      widget.controller.startDrawing(localPosition);
+    } else {
+      // ハンドルの判定
+      _activeHandle = _getHandleAtPoint(details.localFocalPoint);
+
+      if (_activeHandle == null && widget.controller.hitTest(localPosition) == null) {
+        widget.controller.clearSelection();
+      } else if (!widget.controller.hasSelection) {
+        // オブジェクトの選択を試行
+        widget.controller.selectObject(localPosition);
+      }
+
+      // 削除ハンドル上の場合はオブジェクトを削除
+      if (_activeHandle == _HandleType.delete) {
+        widget.controller.deleteSelectedObject();
       } else {
-        // ハンドルの判定
-        _activeHandle = _getHandleAtPoint(details.localFocalPoint);
-
-        // ハンドル上でない場合はオブジェクトの選択を試行
-        if (_activeHandle == null) {
-          widget.controller.selectObject(localPosition);
+        // オブジェクト上の場合は変形操作の開始を通知
+        if (widget.controller.hasSelection) {
+          widget.controller.beginTransform();
         }
       }
     }
@@ -197,42 +208,68 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
 
   /// スケール操作が更新されたときに呼ばれるコールバック
   void _handleScaleUpdate(ScaleUpdateDetails details) {
-    // ツールが選択されていて、ポインタが1つの場合
-    if (widget.controller.isToolSelected && details.pointerCount == 1) {
+    if (details.pointerCount == 1) {
       // 焦点位置をシーン座標に変換
       final localPosition = _transformationController.toScene(details.localFocalPoint);
-      // 描画ポイントを追加
-      widget.controller.addPoint(localPosition);
+
+      // ツールが選択されている場合
+      if (widget.controller.isToolSelected) {
+        // ツールに基づく描画
+        widget.controller.addPoint(localPosition);
+      }
+      // 指がハンドル上にあり、オブジェクトが選択されている場合
+      else if (widget.controller.hasSelection) {
+        final center = widget.controller.selectedObject!.bounds.center;
+
+        switch (_activeHandle) {
+          case _HandleType.topLeft:
+          case _HandleType.topRight:
+          case _HandleType.bottomLeft:
+          case _HandleType.bottomRight:
+            // リサイズ処理
+            final initialDistance = (_lastFocalPoint - _transformLocalPointToScreen(center)).distance;
+            final currentDistance = (details.localFocalPoint - _transformLocalPointToScreen(center)).distance;
+            final scale = currentDistance / initialDistance;
+
+            widget.controller.resizeSelectedObject(scale);
+            break;
+
+          case _HandleType.rotate:
+            // 回転処理
+            final screenCenter = _transformLocalPointToScreen(center);
+            final lastAngle = (_lastFocalPoint - screenCenter).direction;
+            final currentAngle = (details.localFocalPoint - screenCenter).direction;
+            final rotation = currentAngle - lastAngle;
+
+            widget.controller.rotateSelectedObject(rotation);
+            break;
+
+          case _HandleType.delete:
+            // 削除処理(ドラッグ中は何もしない)
+            break;
+
+          case null:
+            // 移動処理
+            final delta = details.localFocalPoint - _lastFocalPoint;
+            final scaledDelta = delta.scale(
+              1 / _transformationController.value.getMaxScaleOnAxis(),
+              1 / _transformationController.value.getMaxScaleOnAxis(),
+            );
+            widget.controller.moveSelectedObject(scaledDelta);
+            break;
+
+          default:
+            break;
+        }
+      }
+      // それ以外の場合はキャンバスのスケール
+      else {
+        _handleCanvasTransform(details);
+      }
     }
-    // 指がハンドル上にあり、オブジェクトが選択されている場合
-    else if (_activeHandle != null && widget.controller.hasSelection) {
-      _handleObjectTransform(details);
-    }
-    // オブジェクトが選択されており、1本指で操作する場合
-    else if (widget.controller.hasSelection && details.pointerCount == 1) {
-      // オブジェクトの移動
-      final delta = details.localFocalPoint - _lastFocalPoint;
-      final scaledDelta = delta.scale(1 / _transformationController.value.getMaxScaleOnAxis(),
-          1 / _transformationController.value.getMaxScaleOnAxis());
-      widget.controller.moveSelectedObject(scaledDelta);
-    } else {
-      // スケールの変化量を計算
-      final scaleDiff = details.scale - _lastScale;
-      // 現在のスケールを更新
-      _lastScale = details.scale;
-
-      // ズームのための変換行列を作成
-      final scaleMatrix = Matrix4.identity()
-        ..translate(details.localFocalPoint.dx, details.localFocalPoint.dy)
-        ..scale(1.0 + scaleDiff)
-        ..translate(-details.localFocalPoint.dx, -details.localFocalPoint.dy);
-
-      // パンのための変換行列を作成
-      final panDelta = details.localFocalPoint - _lastFocalPoint;
-      final panMatrix = Matrix4.identity()..translate(panDelta.dx, panDelta.dy);
-
-      // 変換行列を更新
-      _transformationController.value = panMatrix * scaleMatrix * _transformationController.value;
+    // それ以外の場合はキャンバスのパン
+    else {
+      _handleCanvasTransform(details);
     }
 
     // 焦点位置を更新
@@ -244,16 +281,16 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
 
   /// スケール操作が終了したときに呼ばれるコールバック
   void _handleScaleEnd(ScaleEndDetails details) {
-    if (_activeHandle == _HandleType.delete && widget.controller.hasSelection) {
-      widget.controller.deleteSelectedObject();
-    }
-
-    _isDragging = false;
-    _activeHandle = null;
-
-    if (widget.controller.isToolSelected) {
+    // 変形操作の終了を通知
+    if (_activeHandle != null || widget.controller.hasSelection) {
+      widget.controller.endTransform();
+    } else if (widget.controller.isToolSelected) {
       widget.controller.endDrawing();
     }
+
+    // UIを更新
+    setState(() => _isDragging = false);
+    _activeHandle = null;
   }
 
   /// マウスホイールイベントの処理
@@ -288,46 +325,25 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
     setState(() {});
   }
 
-  /// オブジェクトの変換処理
-  ///
-  /// [details] スケール更新時の詳細情報
-  void _handleObjectTransform(ScaleUpdateDetails details) {
-    if (!widget.controller.hasSelection) return;
+  /// キャンバスの変形処理（パン/スケール）
+  void _handleCanvasTransform(ScaleUpdateDetails details) {
+    // スケールの変化量を計算
+    final scaleDiff = details.scale - _lastScale;
+    // 現在のスケールを更新
+    _lastScale = details.scale;
 
-    final selectedObject = widget.controller.selectedObject!;
-    final bounds = selectedObject.bounds;
-    final center = bounds.center;
+    // ズームのための変換行列を作成
+    final scaleMatrix = Matrix4.identity()
+      ..translate(details.localFocalPoint.dx, details.localFocalPoint.dy)
+      ..scale(1.0 + scaleDiff)
+      ..translate(-details.localFocalPoint.dx, -details.localFocalPoint.dy);
 
-    switch (_activeHandle) {
-      case _HandleType.topLeft:
-      case _HandleType.topRight:
-      case _HandleType.bottomLeft:
-      case _HandleType.bottomRight:
-        // リサイズ処理
-        final initialDistance = (_lastFocalPoint - _transformLocalPointToScreen(center)).distance;
-        final currentDistance = (details.localFocalPoint - _transformLocalPointToScreen(center)).distance;
-        final scale = currentDistance / initialDistance;
+    // パンのための変換行列を作成
+    final panDelta = details.localFocalPoint - _lastFocalPoint;
+    final panMatrix = Matrix4.identity()..translate(panDelta.dx, panDelta.dy);
 
-        widget.controller.resizeSelectedObject(scale);
-        break;
-
-      case _HandleType.rotate:
-        // 回転処理
-        final screenCenter = _transformLocalPointToScreen(center);
-        final lastAngle = (_lastFocalPoint - screenCenter).direction;
-        final currentAngle = (details.localFocalPoint - screenCenter).direction;
-        final rotation = currentAngle - lastAngle;
-
-        widget.controller.rotateSelectedObject(rotation);
-        break;
-
-      case _HandleType.delete:
-        // 削除処理(ドラッグ中は何もしない)
-        break;
-
-      default:
-        break;
-    }
+    // 変換行列を更新
+    _transformationController.value = panMatrix * scaleMatrix * _transformationController.value;
   }
 }
 

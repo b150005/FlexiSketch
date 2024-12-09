@@ -105,6 +105,33 @@ class ShapeObject extends DrawableObject {
     }
   }
 
+  @override
+  ShapeObject clone() {
+    final clonedPaint = Paint()
+      ..color = paint.color
+      ..strokeWidth = paint.strokeWidth
+      ..style = paint.style
+      ..strokeCap = paint.strokeCap
+      ..strokeJoin = paint.strokeJoin
+      ..blendMode = paint.blendMode;
+
+    final clone = ShapeObject(
+      startPoint: _startPoint,
+      endPoint: _endPoint,
+      shapeType: shapeType,
+      paint: clonedPaint,
+    );
+
+    // 変換状態をコピー
+    clone
+      ..globalCenter = globalCenter
+      ..rotation = rotation
+      ..scale = scale
+      ..isSelected = false;
+
+    return clone;
+  }
+
   /// キャッシュされたパスを取得する
   ///
   /// パスが未作成の場合は新規作成します。

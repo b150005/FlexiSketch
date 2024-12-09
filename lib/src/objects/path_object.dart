@@ -89,6 +89,32 @@ class PathObject extends DrawableObject {
     }
   }
 
+  @override
+  PathObject clone() {
+    final clonedPath = Path()..addPath(_path, Offset.zero);
+    final clonedPaint = Paint()
+      ..color = paint.color
+      ..strokeWidth = paint.strokeWidth
+      ..style = paint.style
+      ..strokeCap = paint.strokeCap
+      ..strokeJoin = paint.strokeJoin
+      ..blendMode = paint.blendMode;
+
+    final clone = PathObject(
+      inputPath: clonedPath,
+      paint: clonedPaint,
+    );
+
+    // 変換状態をコピー
+    clone
+      ..globalCenter = globalCenter
+      ..rotation = rotation
+      ..scale = scale
+      ..isSelected = false;
+
+    return clone;
+  }
+
   /// パスに新しい点を追加する
   ///
   /// 現在のパスの最後の点から指定された点まで直線を引きます。

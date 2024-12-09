@@ -80,4 +80,30 @@ class ImageObject extends DrawableObject {
     // 画像は矩形として判定
     return localBounds.contains(localPoint);
   }
+
+  @override
+  ImageObject clone() {
+    final clonedPaint = Paint()
+      ..color = paint.color
+      ..strokeWidth = paint.strokeWidth
+      ..style = paint.style
+      ..strokeCap = paint.strokeCap
+      ..strokeJoin = paint.strokeJoin
+      ..blendMode = paint.blendMode;
+
+    final clone = ImageObject(
+      image: image, // 画像データは同じものを参照（共有）
+      globalCenter: globalCenter,
+      size: _size,
+      paint: clonedPaint,
+    );
+
+    // 変換状態をコピー
+    clone
+      ..rotation = rotation
+      ..scale = scale
+      ..isSelected = false;
+
+    return clone;
+  }
 }

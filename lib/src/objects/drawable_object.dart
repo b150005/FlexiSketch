@@ -243,4 +243,10 @@ abstract class DrawableObject implements Serializable {
     _transformCache = null;
     _inverseTransformCache = null;
   }
+
+  /// オブジェクトの深いコピーを作成する
+  ///
+  /// このメソッドは、オブジェクトの完全なコピーを作成します。
+  /// 変換状態（位置、回転、スケール）も含めて複製されます。
+  DrawableObject clone();
 }
