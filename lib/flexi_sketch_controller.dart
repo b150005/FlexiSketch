@@ -73,7 +73,7 @@ class FlexiSketchController extends ChangeNotifier {
   /// 選択中のオブジェクトが画像かどうか
   bool get isImageSelected => _selectedObject is ImageObject;
 
-  /// 変形開始時の状態を保持
+  /// 変形開始時の状態
   DrawableObject? _transformStartState;
 
   /// エラー通知用のコールバック関数
