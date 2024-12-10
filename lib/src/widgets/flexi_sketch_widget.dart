@@ -178,6 +178,14 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
     );
   }
 
+  /// 初期データを読み込んでキャンバスを初期化します。
+  ///
+  /// このメソッドは [initState] の一部として呼び出され、[widget.data] が存在する場合、そのデータを [FlexiSketchController] を通じて読み込みます。
+  ///
+  /// データの読み込み中にエラーが発生した場合は、[widget.onError] を通じてエラーメッセージが通知されます。
+  /// これにより、ユーザーに適切なフィードバックを提供することができます。
+  ///
+  /// 非同期操作を含むため Future を返しますが、エラーハンドリングはメソッド内で完結し、呼び出し元には伝播しません。
   Future<void> _initializeWithData() async {
     if (widget.data != null) {
       try {
