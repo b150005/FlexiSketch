@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flexi_sketch/src/config/flexi_sketch_size_config.dart';
+import 'package:flexi_sketch/src/extensions/matrix4_extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -818,5 +819,33 @@ class FlexiSketchController extends ChangeNotifier {
       _notifyError('データの読み込みに失敗しました: $e');
       rethrow;
     }
+  }
+
+  /// JSONデータ読み込み時の初期変換行列を計算する
+  Matrix4? calculateInitialTransform(Size viewportSize) {
+    if (_objects.isEmpty || _canvasSize == null) return null;
+
+    // 全オブジェクトのバウンディングボックスを計算
+    Rect contentBounds = _objects.first.bounds;
+    for (final object in _objects.skip(1)) {
+      contentBounds = contentBounds.expandToInclude(object.bounds);
+    }
+
+    // コンテンツと画面の両方のアスペクト比を計算
+    final contentAspectRatio = contentBounds.width / contentBounds.height;
+    final viewportAspectRatio = viewportSize.width / viewportSize.height;
+
+    // スケールを計算（幅と高さの両方に20pxのパディングを考慮）
+    final scaleX = (viewportSize.width - 40) / contentBounds.width;
+    final scaleY = (viewportSize.height - 40) / contentBounds.height;
+
+    // アスペクト比を維持しながら、最適なスケールを選択
+    final scaleFactor = contentAspectRatio > viewportAspectRatio ? scaleX : scaleY;
+
+    // 変換行列を作成
+    final result = Matrix4.identity();
+    result.setScaleAndCenter(scaleFactor, contentBounds.center, viewportSize);
+
+    return result;
   }
 }

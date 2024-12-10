@@ -95,6 +95,11 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
 
   /// コントローラの状態変更時に呼び出されるコールバック
   void _onControllerChanged() {
+    // オブジェクトが読み込まれた後に初期変換を設定
+    if (widget.controller.objects.isNotEmpty) {
+      _setInitialTransform();
+    }
+
     setState(() {});
   }
 
@@ -344,6 +349,27 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
 
     // 変換行列を更新
     _transformationController.value = panMatrix * scaleMatrix * _transformationController.value;
+  }
+
+  /// キャンバスの初期変換を設定します。
+  ///
+  /// このメソッドは、ウィジェットのレイアウトが完了した後に呼び出され、キャンバス内のすべてのオブジェクトが画面内に収まるように
+  /// 適切なスケールと中心位置を計算して設定します。
+  ///
+  /// キャンバスのサイズが未確定の場合や、コンポーネントがすでにアンマウントされている場合は何も行いません。
+  /// 初期変換の計算は [FlexiSketchController] の [calculateInitialTransform] メソッドに委譲され、
+  /// 計算結果が `null` でない場合のみ [TransformationController] に設定されます。
+  void _setInitialTransform() {
+    if (!mounted) return;
+
+    final size = context.size;
+    if (size == null) return;
+
+    // コントローラから初期変換を取得
+    final initialTransform = widget.controller.calculateInitialTransform(size);
+    if (initialTransform != null) {
+      _transformationController.value = initialTransform;
+    }
   }
 }
 
