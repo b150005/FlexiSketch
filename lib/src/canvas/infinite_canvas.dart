@@ -22,6 +22,9 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
   /// キャンバスの変換(移動、拡大・縮小)を管理するコントローラ
   late TransformationController _transformationController;
 
+  /// 初期変換が設定されたかどうか
+  bool _initialTransformSet = false;
+
   /// 最後のタッチ・マウスのローカル座標
   Offset _lastFocalPoint = Offset.zero;
 
@@ -31,7 +34,7 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
   /// ドラッグ操作中かどうか
   bool _isDragging = false;
 
-  /// 現在捜査中のハンドルの種類
+  /// 現在操作中のハンドルの種類
   _HandleType? _activeHandle;
 
   // マウスホイールのズーム感度(大きいほど敏感)
@@ -95,9 +98,10 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
 
   /// コントローラの状態変更時に呼び出されるコールバック
   void _onControllerChanged() {
-    // オブジェクトが読み込まれた後に初期変換を設定
-    if (widget.controller.objects.isNotEmpty) {
+    // 初期変換が未設定で、オブジェクトが存在する場合のみ初期変換を設定
+    if (!_initialTransformSet && widget.controller.objects.isNotEmpty) {
       _setInitialTransform();
+      _initialTransformSet = true;
     }
 
     setState(() {});
