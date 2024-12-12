@@ -15,15 +15,12 @@ class InfiniteCanvas extends StatefulWidget {
   const InfiniteCanvas({super.key, required this.controller});
 
   @override
-  State<InfiniteCanvas> createState() => _InfiniteCanvasState();
+  State<InfiniteCanvas> createState() => InfiniteCanvasState();
 }
 
-class _InfiniteCanvasState extends State<InfiniteCanvas> {
+class InfiniteCanvasState extends State<InfiniteCanvas> {
   /// キャンバスの変換(移動、拡大・縮小)を管理するコントローラ
   late TransformationController _transformationController;
-
-  /// 初期変換が設定されたかどうか
-  bool _initialTransformSet = false;
 
   /// 最後のタッチ・マウスのローカル座標
   Offset _lastFocalPoint = Offset.zero;
@@ -98,13 +95,29 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
 
   /// コントローラの状態変更時に呼び出されるコールバック
   void _onControllerChanged() {
-    // 初期変換が未設定で、オブジェクトが存在する場合のみ初期変換を設定
-    if (!_initialTransformSet && widget.controller.objects.isNotEmpty) {
-      _setInitialTransform();
-      _initialTransformSet = true;
-    }
-
     setState(() {});
+  }
+
+  /// キャンバスの初期変換を設定します。
+  ///
+  /// このメソッドは、ウィジェットのレイアウトが完了した後に呼び出され、キャンバス内のすべてのオブジェクトが画面内に収まるように
+  /// 適切なスケールと中心位置を計算して設定します。
+  ///
+  /// キャンバスのサイズが未確定の場合や、コンポーネントがすでにアンマウントされている場合は何も行いません。
+  /// 初期変換の計算は [FlexiSketchController] の [calculateInitialTransform] メソッドに委譲され、
+  /// 計算結果が `null` でない場合のみ [TransformationController] に設定されます。
+
+  void setInitialTransform() {
+    if (!mounted) return;
+
+    final size = context.size;
+    if (size == null) return;
+
+    // コントローラから初期変換を取得
+    final initialTransform = widget.controller.calculateInitialTransform(size);
+    if (initialTransform != null) {
+      _transformationController.value = initialTransform;
+    }
   }
 
   /// 現在の状態に応じたマウスカーソルを取得する
@@ -353,27 +366,6 @@ class _InfiniteCanvasState extends State<InfiniteCanvas> {
 
     // 変換行列を更新
     _transformationController.value = panMatrix * scaleMatrix * _transformationController.value;
-  }
-
-  /// キャンバスの初期変換を設定します。
-  ///
-  /// このメソッドは、ウィジェットのレイアウトが完了した後に呼び出され、キャンバス内のすべてのオブジェクトが画面内に収まるように
-  /// 適切なスケールと中心位置を計算して設定します。
-  ///
-  /// キャンバスのサイズが未確定の場合や、コンポーネントがすでにアンマウントされている場合は何も行いません。
-  /// 初期変換の計算は [FlexiSketchController] の [calculateInitialTransform] メソッドに委譲され、
-  /// 計算結果が `null` でない場合のみ [TransformationController] に設定されます。
-  void _setInitialTransform() {
-    if (!mounted) return;
-
-    final size = context.size;
-    if (size == null) return;
-
-    // コントローラから初期変換を取得
-    final initialTransform = widget.controller.calculateInitialTransform(size);
-    if (initialTransform != null) {
-      _transformationController.value = initialTransform;
-    }
   }
 }
 

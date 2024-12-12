@@ -50,6 +50,9 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
   bool _isSaving = false;
   double _saveProgress = 0.0;
 
+  /// InfiniteCanvasへの参照
+  final GlobalKey<InfiniteCanvasState> _canvasKey = GlobalKey<InfiniteCanvasState>();
+
   @override
   void initState() {
     super.initState();
@@ -95,7 +98,10 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
                     constraints.maxWidth,
                     constraints.maxHeight,
                   ));
-                  return InfiniteCanvas(controller: widget.controller);
+                  return InfiniteCanvas(
+                    key: _canvasKey,
+                    controller: widget.controller,
+                  );
                 },
               ),
               // ツールバー
@@ -180,16 +186,17 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
 
   /// 初期データを読み込んでキャンバスを初期化します。
   ///
-  /// このメソッドは [initState] の一部として呼び出され、[widget.data] が存在する場合、そのデータを [FlexiSketchController] を通じて読み込みます。
+  /// このメソッドは以下の処理を順次実行します：
+  /// 1. JSONデータが存在する場合、そのデータをコントローラを通じて読み込みます
+  /// 2. データの読み込みが完了したら、キャンバスの初期変換を設定します
   ///
-  /// データの読み込み中にエラーが発生した場合は、[widget.onError] を通じてエラーメッセージが通知されます。
-  /// これにより、ユーザーに適切なフィードバックを提供することができます。
-  ///
-  /// 非同期操作を含むため Future を返しますが、エラーハンドリングはメソッド内で完結し、呼び出し元には伝播しません。
+  /// データの読み込み中にエラーが発生した場合は、 [widget.onError] を通じてエラーメッセージが通知されます。
   Future<void> _initializeWithData() async {
     if (widget.data != null) {
       try {
         await widget.controller.loadFromJson(widget.data!);
+        // データ読み込み後にキャンバスの初期変換を設定
+        _canvasKey.currentState?.setInitialTransform();
       } catch (e) {
         widget.onError?.call('データの読み込みに失敗しました: $e');
       }
