@@ -40,11 +40,12 @@ class CanvasPainter extends CustomPainter {
   static const dashPattern = <double>[5, 5];
 
   /// コンストラクタ
-  /// 
+  ///
   /// [controller] 描画を管理するコントローラ
   /// [transform] 描画に適用する変換行列
   /// [handleSize] オブジェクト操作ハンドルのサイズ(デフォルト: `12.0`)
-  CanvasPainter({required this.controller, required this.transform, this.handleSize = 12.0}) : super(repaint: controller);
+  CanvasPainter({required this.controller, required this.transform, this.handleSize = 12.0})
+      : super(repaint: controller);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -115,7 +116,7 @@ class CanvasPainter extends CustomPainter {
   /// グリッドのサイズは固定されており、指定された色と透明度で描画されます。
   void _drawGrid(Canvas canvas, Rect visibleRect) {
     final paint = Paint()
-      ..color = Colors.grey.withOpacity(0.5) // グリッドの色と透明度
+      ..color = Colors.grey.withValues(alpha: 0.5) // グリッドの色と透明度
       ..strokeWidth = 0.5; // グリッドの線の太さ
 
     const gridSize = 20.0;
@@ -138,7 +139,7 @@ class CanvasPainter extends CustomPainter {
   /// オブジェクトが可視領域内にあるかどうか
   ///
   /// このメソッドは、与えられた DrawableObject が可視領域と交差しているかどうかを確認します。
-  /// 
+  ///
   /// [object] 判定対象のオブジェクト
   /// [visibleRect] 可視領域を表す矩形
   bool _isObjectVisible(DrawableObject object, Rect visibleRect) {
@@ -146,9 +147,9 @@ class CanvasPainter extends CustomPainter {
   }
 
   /// 選択 UI を描画する
-  /// 
+  ///
   /// 選択されたオブジェクトの周囲に選択枠とハンドルを描画します。
-  /// 
+  ///
   /// [canvas] 描画対象のキャンバス
   /// [object] 選択されたオブジェクト
   void _drawSelectionUI(Canvas canvas, DrawableObject object) {
@@ -164,14 +165,14 @@ class CanvasPainter extends CustomPainter {
   }
 
   /// 選択枠を描画する
-  /// 
+  ///
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
   void _drawSelectionBorder(Canvas canvas, Rect bounds) {
     final paint = Paint()
-    ..color = selectionBorderColor
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = selectionBorderWidth;
+      ..color = selectionBorderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = selectionBorderWidth;
 
     // 点線のパスを作成
     final path = Path();
@@ -192,7 +193,7 @@ class CanvasPainter extends CustomPainter {
   }
 
   /// 点線を描画するためのパスを追加する
-  /// 
+  ///
   /// [path] 追加先のパス
   /// [start] 開始点
   /// [end] 終了点
@@ -226,7 +227,7 @@ class CanvasPainter extends CustomPainter {
   }
 
   /// 四隅のリサイズハンドルを描画する
-  /// 
+  ///
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
   void _drawCornerHandles(Canvas canvas, Rect bounds) {
@@ -246,24 +247,24 @@ class CanvasPainter extends CustomPainter {
       bounds.bottomRight,
     ]) {
       canvas
-      ..drawCircle(point, handleSize / 2, handlePaint)
-      ..drawCircle(point, handleSize / 2, handleBorderPaint);
+        ..drawCircle(point, handleSize / 2, handlePaint)
+        ..drawCircle(point, handleSize / 2, handleBorderPaint);
     }
   }
 
   /// 回転ハンドルを描画する
-  /// 
+  ///
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
   void _drawRotationHandle(Canvas canvas, Rect bounds) {
     final handlePaint = Paint()
       ..color = handleFillColor
       ..style = PaintingStyle.fill;
-    
+
     final handleBorderPaint = Paint()
-    ..color = handleBorderColor
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = handleBorderWidth;
+      ..color = handleBorderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = handleBorderWidth;
 
     final rotationHandle = Offset(bounds.center.dx, bounds.top - 20);
 
@@ -274,7 +275,7 @@ class CanvasPainter extends CustomPainter {
   }
 
   /// 削除ハンドルを描画する
-  /// 
+  ///
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
   void _drawDeleteHandle(Canvas canvas, Rect bounds) {
@@ -283,9 +284,9 @@ class CanvasPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final handleBorderPaint = Paint()
-    ..color = handleBorderColor
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = handleBorderWidth;
+      ..color = handleBorderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = handleBorderWidth;
 
     final deleteHandle = Offset(bounds.center.dx, bounds.bottom + 20);
 

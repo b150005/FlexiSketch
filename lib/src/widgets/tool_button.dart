@@ -26,9 +26,9 @@ class ToolButton extends StatelessWidget {
           onTap: onPressed,
           child: Ink(
             decoration: BoxDecoration(
-              color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
+              color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : null,
               border: Border.all(
-                color: isSelected ? Theme.of(context).primaryColor : Colors.grey.withOpacity(0.3),
+                color: isSelected ? Theme.of(context).primaryColor : Colors.grey.withValues(alpha: 0.3),
                 width: 1,
               ),
               borderRadius: BorderRadius.circular(6),

@@ -26,7 +26,7 @@ class ColorButton extends StatelessWidget {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             border: Border.all(
-              color: isExpanded ? Theme.of(context).primaryColor : Colors.grey.withOpacity(0.3),
+              color: isExpanded ? Theme.of(context).primaryColor : Colors.grey.withValues(alpha: 0.3),
               width: 1,
             ),
             borderRadius: BorderRadius.circular(6),

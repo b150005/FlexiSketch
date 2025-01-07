@@ -135,7 +135,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 12,
                   offset: const Offset(0, -2),
                 ),
@@ -177,7 +177,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         width: 32,
         height: 4,
         decoration: BoxDecoration(
-          color: Colors.grey.withOpacity(0.3),
+          color: Colors.grey.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(2),
         ),
       ),
@@ -368,7 +368,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                 color: color,
                 borderRadius: BorderRadius.circular(6), // ToolButtonと同じ角丸
                 border: Border.all(
-                  color: Colors.grey.withOpacity(0.3),
+                  color: Colors.grey.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -410,7 +410,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         height: 24, // ToolButtonの高さの2/3程度
         child: VerticalDivider(
           thickness: 1,
-          color: Colors.grey.withOpacity(0.3),
+          color: Colors.grey.withValues(alpha: 0.3),
         ),
       ),
     );

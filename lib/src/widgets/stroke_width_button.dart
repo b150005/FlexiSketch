@@ -64,7 +64,7 @@ class _StrokeWidthButtonState extends State<StrokeWidthButton> {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             border: Border.all(
-              color: Colors.grey.withOpacity(0.3),
+              color: Colors.grey.withValues(alpha: 0.3),
               width: 1,
             ),
             borderRadius: BorderRadius.circular(6),
@@ -148,7 +148,7 @@ class _StrokeWidthButtonState extends State<StrokeWidthButton> {
                         color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: Colors.grey.withOpacity(0.2),
+                          color: Colors.grey.withValues(alpha: 0.2),
                           width: 1,
                         ),
                       ),
