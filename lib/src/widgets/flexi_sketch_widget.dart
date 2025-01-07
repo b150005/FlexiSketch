@@ -113,14 +113,14 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
                   child: Toolbar(
                     controller: widget.controller,
                     onSaveAsImage: widget.onSaveAsImage != null
-                        ? (imageData) async {
+                        ? (context, imageData) async {
                             setState(() {
                               _isSaving = true;
                               _saveProgress = 0.0;
                             });
 
                             try {
-                              await widget.onSaveAsImage!(imageData);
+                              await widget.onSaveAsImage!(context, imageData);
                             } finally {
                               setState(() {
                                 _isSaving = false;
@@ -129,14 +129,14 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
                           }
                         : null,
                     onSaveAsData: widget.onSaveAsData != null
-                        ? (jsonData, imageData, progress) async {
+                        ? (context, jsonData, imageData, progress) async {
                             setState(() {
                               _isSaving = true;
                               _saveProgress = progress;
                             });
 
                             try {
-                              await widget.onSaveAsData!(jsonData, imageData, progress);
+                              await widget.onSaveAsData!(context, jsonData, imageData, progress);
                             } finally {
                               if (progress >= 1.0) {
                                 setState(() {

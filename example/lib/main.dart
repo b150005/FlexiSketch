@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flexi_sketch/flexi_sketch.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,11 +36,8 @@ class TestScreen extends StatefulWidget {
 }
 
 class _TestScreenState extends State<TestScreen> {
-  Image? _generatedImage;
   Map<String, dynamic>? _currentData;
-  String? _errorMessage;
   final TextEditingController _jsonController = TextEditingController();
-  Map<String, dynamic>? _pendingData;
   ImageLoadingState? _loadingState;
 
   final FlexiSketchController _controller = FlexiSketchController();
@@ -91,190 +91,82 @@ class _TestScreenState extends State<TestScreen> {
                 child: FlexiSketchWidget(
                   controller: _controller,
                   data: _currentData?['content'],
-                  onSaveAsImage: (imageData) async {
-                    setState(() {
-                      _generatedImage = Image.memory(imageData);
-                      _errorMessage = null;
-                    });
+
+                  // DEBUG: 画像として保存
+                  onSaveAsImage: (context, imageData) async {
+                    try {
+                      // 一時ディレクトリを取得
+                      final tempDir = await getTemporaryDirectory();
+                      final timestamp = DateTime.now().millisecondsSinceEpoch;
+                      final tempFile = File('${tempDir.path}/sketch_$timestamp.png');
+
+                      // 画像データを一時ファイルとして保存
+                      await tempFile.writeAsBytes(imageData);
+
+                      if (!context.mounted) return;
+                      final box = context.findRenderObject() as RenderBox?;
+
+                      // 共有ダイアログを表示
+                      await Share.shareXFiles(
+                        [XFile(tempFile.path)],
+                        subject: '画像データ',
+                        sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
+                      ).then((_) async {
+                        // 共有完了後に一時ファイルを削除
+                        if (await tempFile.exists()) {
+                          await tempFile.delete();
+                        }
+                      });
+                    } catch (e) {
+                      developer.log('画像の共有エラー: $e');
+                    }
                   },
-                  onSaveAsData: (jsonData, imageData, progress) async {
+
+                  // DEBUG: JSONとして保存
+                  onSaveAsData: (context, jsonData, imageData, progress) async {
                     if (jsonData == null || imageData == null) {
                       return;
                     }
 
-                    setState(() {
-                      _generatedImage = Image.memory(imageData);
-                      _errorMessage = null;
-                    });
+                    try {
+                      // JSONデータを整形
+                      final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
 
-                    // DEBUG: 重くなるのでコメントアウト
-                    // final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
-                    // setState(() {
-                    //   _currentData = jsonData;
-                    //   _pendingData = jsonData; // 保存時は pending も更新
-                    //   _jsonController.text = jsonString;
-                    // });
-                    // await Clipboard.setData(ClipboardData(text: jsonString));
-                    // if (!context.mounted) return;
-                    // ScaffoldMessenger.of(context).showSnackBar(
-                    //   const SnackBar(
-                    //     content: Text('JSONをクリップボードにコピーしました'),
-                    //     duration: Duration(seconds: 1),
-                    //   ),
-                    // );
+                      // 一時ディレクトリを取得
+                      final tempDir = await getTemporaryDirectory();
+                      final timestamp = DateTime.now().millisecondsSinceEpoch;
+                      final tempFile = File('${tempDir.path}/sketch_$timestamp.json');
+
+                      // JSONデータを一時ファイルとして保存
+                      await tempFile.writeAsString(jsonString);
+
+                      if (!context.mounted) return;
+                      final box = context.findRenderObject() as RenderBox?;
+
+                      // 共有ダイアログを表示
+                      await Share.shareXFiles(
+                        [XFile(tempFile.path)],
+                        subject: 'JSONデータ',
+                        sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
+                      ).then((_) async {
+                        // 共有完了後に一時ファイルを削除
+                        if (await tempFile.exists()) {
+                          await tempFile.delete();
+                        }
+                      });
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('JSONデータの共有に失敗しました: $e')),
+                      );
+                      developer.log('JSONデータの共有エラー: $e');
+                    }
                   },
                   onError: (message) {
                     setState(() {
-                      _errorMessage = message;
                       _loadingState = null;
                     });
                   },
-                ),
-              ),
-              // プレビュー部分
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border(
-                      left: BorderSide(
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (_errorMessage != null)
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Text(
-                            _errorMessage!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                          ),
-                        ),
-                      // 画像プレビュー
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                '画像プレビュー',
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                            ),
-                            Expanded(
-                              child: _generatedImage != null
-                                  ? SingleChildScrollView(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                            color: Theme.of(context).dividerColor,
-                                          ),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: _generatedImage,
-                                        ),
-                                      ),
-                                    )
-                                  : const Center(
-                                      child: Text(
-                                        '画像を保存すると\nここにプレビューが表示されます',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
-                                    ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // JSONプレビュー
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    'JSONプレビュー',
-                                    style: Theme.of(context).textTheme.titleMedium,
-                                  ),
-                                  const Spacer(),
-                                  // JSONの構文チェックと反映ボタン
-                                  TextButton.icon(
-                                    icon: const Icon(Icons.play_arrow, size: 20),
-                                    label: const Text('反映'),
-                                    onPressed: _isTextEmpty
-                                        ? null
-                                        : () {
-                                            _parseJson();
-                                            if (_errorMessage == null) {
-                                              _applyJsonToCanvas();
-                                            }
-                                          },
-                                  ),
-                                  const SizedBox(width: 8),
-                                  // コピーボタン
-                                  TextButton.icon(
-                                    icon: const Icon(Icons.copy, size: 20),
-                                    label: const Text('コピー'),
-                                    onPressed: _isTextEmpty
-                                        ? null
-                                        : () {
-                                            Clipboard.setData(
-                                              ClipboardData(text: _jsonController.text),
-                                            );
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('JSONをクリップボードにコピーしました'),
-                                                duration: Duration(seconds: 1),
-                                              ),
-                                            );
-                                          },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Theme.of(context).dividerColor),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: TextField(
-                                    controller: _jsonController,
-                                    maxLines: null,
-                                    expands: true,
-                                    decoration: const InputDecoration(
-                                      border: InputBorder.none,
-                                      hintText: 'JSONを入力して「反映」ボタンを押すとキャンバスに反映されます',
-                                      hintStyle: TextStyle(color: Colors.grey),
-                                    ),
-                                    style: TextStyle(
-                                      fontFamily: 'monospace',
-                                      fontSize: 12,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ],
@@ -311,40 +203,6 @@ class _TestScreenState extends State<TestScreen> {
     );
   }
 
-  /// JSONの解析を行う
-  void _parseJson() {
-    if (_jsonController.text.isEmpty) {
-      setState(() {
-        _pendingData = null;
-        _errorMessage = null;
-      });
-      return;
-    }
-
-    try {
-      final data = json.decode(_jsonController.text) as Map<String, dynamic>;
-      setState(() {
-        _pendingData = data;
-        _errorMessage = null;
-      });
-    } catch (e) {
-      setState(() {
-        _pendingData = null;
-        _errorMessage = 'JSONの解析に失敗しました: $e';
-      });
-    }
-  }
-
-  /// キャンバスにJSONデータを反映する
-  void _applyJsonToCanvas() {
-    if (_pendingData != null) {
-      setState(() {
-        _currentData = _pendingData;
-        _errorMessage = null;
-      });
-    }
-  }
-
   /// 画像を選択してFlexiSketchに読み込む
   Future<void> _pickAndLoadImage(BuildContext context) async {
     try {
@@ -354,7 +212,6 @@ class _TestScreenState extends State<TestScreen> {
       if (pickedFile != null) {
         setState(() {
           _loadingState = ImageLoadingState.initial;
-          _errorMessage = null;
         });
 
         final bytes = await pickedFile.readAsBytes();
@@ -388,13 +245,11 @@ class _TestScreenState extends State<TestScreen> {
 
         setState(() {
           _currentData = jsonData;
-          _errorMessage = null;
           _loadingState = null;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = '画像の読み込み中にエラーが発生しました: $e';
         _loadingState = null;
       });
     }

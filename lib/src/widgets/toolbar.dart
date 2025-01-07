@@ -199,7 +199,8 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                 icon: Icons.image,
                 onPressed: () async {
                   final imageData = await widget.controller.generateImageData();
-                  widget.onSaveAsImage!(imageData);
+                  if (!mounted) return;
+                  widget.onSaveAsImage!(context, imageData);
                 },
                 tooltip: '画像として保存',
               ),
@@ -208,21 +209,21 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                 icon: Icons.save,
                 onPressed: () async {
                   // 初期状況の通知
-                  await widget.onSaveAsData!(null, null, 0.01);
+                  await widget.onSaveAsData!(context, null, null, 0.01);
                   await Future<void>.delayed(const Duration(milliseconds: 50));
 
                   // JSONデータ生成中は進捗状況を通知
                   final jsonData = await widget.controller.generateJsonData(
                     null,
                     // 画像データの生成が残っているので progress = 1 の場合は進捗状況を 99% とする
-                    (progress) => widget.onSaveAsData!(null, null, progress == 1 ? 0.99 : progress),
+                    (progress) => widget.onSaveAsData!(context, null, null, progress == 1 ? 0.99 : progress),
                   );
 
                   // 画像データの生成
                   final imageData = await widget.controller.generateImageData();
 
-                  widget.onSaveAsData!(jsonData, imageData, 1.0);
-                  // await Future<void>.delayed(const Duration(milliseconds: 50));
+                  if (!mounted) return;
+                  widget.onSaveAsData!(context, jsonData, imageData, 1.0);
                 },
                 tooltip: 'データとして保存',
               ),
