@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
@@ -208,19 +210,20 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
               ToolButton(
                 icon: Icons.save,
                 onPressed: () async {
+                  // FIXME: Progress値の指定についてはもうちょっとバランス良くできそう
                   // 初期状況の通知
                   await widget.onSaveAsData!(context, null, null, 0.01);
                   await Future<void>.delayed(const Duration(milliseconds: 50));
 
                   // JSONデータ生成中は進捗状況を通知
-                  final jsonData = await widget.controller.generateJsonData(
+                  final Map<String, dynamic> jsonData = await widget.controller.generateJsonData(
                     null,
                     // 画像データの生成が残っているので progress = 1 の場合は進捗状況を 99% とする
                     (progress) => widget.onSaveAsData!(context, null, null, progress == 1 ? 0.99 : progress),
                   );
 
                   // 画像データの生成
-                  final imageData = await widget.controller.generateImageData();
+                  final Uint8List imageData = await widget.controller.generateImageData();
 
                   if (!mounted) return;
                   widget.onSaveAsData!(context, jsonData, imageData, 1.0);
