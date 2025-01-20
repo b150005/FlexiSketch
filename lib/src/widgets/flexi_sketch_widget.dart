@@ -161,14 +161,13 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              CircularProgressIndicator(
-                                value: _saveProgress,
-                              ),
-                              const SizedBox(height: 16),
                               const Text('保存中...'),
-                              Text(
-                                '${(_saveProgress * 100).toStringAsFixed(0)}%',
-                                style: Theme.of(context).textTheme.bodySmall,
+                              const SizedBox(
+                                height: 3,
+                              ),
+                              const Text(
+                                'この処理には時間がかかります',
+                                style: TextStyle(fontSize: 12),
                               ),
                             ],
                           ),

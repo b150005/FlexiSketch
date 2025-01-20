@@ -182,16 +182,14 @@ class _TestScreenState extends State<TestScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CircularProgressIndicator(
-                          value: _loadingState!.progress,
-                        ),
-                        const SizedBox(height: 16),
                         Text(_loadingState!.phase.message),
-                        if (_loadingState!.progress > 0)
-                          Text(
-                            '${(_loadingState!.progress * 100).toStringAsFixed(0)}%',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
+                        const SizedBox(
+                          height: 3,
+                        ),
+                        const Text(
+                          'この処理には時間がかかります',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ],
                     ),
                   ),
