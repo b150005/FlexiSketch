@@ -703,42 +703,54 @@ class FlexiSketchController extends ChangeNotifier {
       // コンテンツの範囲を計算（マージン付き）
       final contentBounds = _calculateContentBounds();
 
+      // デバイスピクセル比を取得
+      final devicePixelRatio = WidgetsBinding.instance.window.devicePixelRatio;
+
       // 描画用のPictureRecorderを作成
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
 
+      // 高解像度に対応するためのスケール設定
+      final scaledWidth = (contentBounds.width * devicePixelRatio).round();
+      final scaledHeight = (contentBounds.height * devicePixelRatio).round();
+      canvas.scale(devicePixelRatio, devicePixelRatio);
+
       // 背景を描画（白色）
       canvas.drawRect(
-        Offset.zero & contentBounds.size,
-        Paint()..color = Colors.white,
-      );
+          Offset.zero & contentBounds.size,
+          Paint()
+            ..color = Colors.white
+            ..isAntiAlias = true);
 
       // コンテンツの位置を調整
       canvas.translate(-contentBounds.left, -contentBounds.top);
 
-      // すべてのオブジェクトを描画
+      // すべてのオブジェクトを描画（アンチエイリアス有効）
       for (final object in _objects) {
+        // オブジェクトの Paint 設定を一時的に上書き
+        if (object is PathObject) {
+          object.paint.isAntiAlias = true;
+        }
         object.draw(canvas);
       }
 
       // 描画中のオブジェクトがあれば描画
       if (_currentPath != null) {
+        _currentPath!.paint.isAntiAlias = true;
         _currentPath!.draw(canvas);
       }
       if (_currentShape != null) {
+        _currentShape!.paint.isAntiAlias = true;
         _currentShape!.draw(canvas);
       }
 
       // Pictureを完成させる
       final picture = recorder.endRecording();
 
-      // 画像に変換
-      final image = await picture.toImage(
-        contentBounds.width.round(),
-        contentBounds.height.round(),
-      );
+      // より高解像度の画像に変換
+      final image = await picture.toImage(scaledWidth, scaledHeight);
 
-      // バイトデータに変換
+      // PNG形式でエンコード（可能な限り高品質に設定）
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) {
         throw const ImageGenerationError('Failed to convert image to byte data');
