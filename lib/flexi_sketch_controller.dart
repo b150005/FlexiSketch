@@ -637,6 +637,8 @@ class FlexiSketchController extends ChangeNotifier {
   /* 保存処理 */
 
   /// キャンバスの内容を JSON データとして生成します
+  ///
+  /// 画像データを含む場合は UI スレッドのブロッキングが発生します
   Future<Map<String, dynamic>> generateJsonData([
     SketchMetadata? metadata,
     void Function(double progress)? onProgress,
