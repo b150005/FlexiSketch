@@ -703,17 +703,17 @@ class FlexiSketchController extends ChangeNotifier {
       // コンテンツの範囲を計算（マージン付き）
       final contentBounds = _calculateContentBounds();
 
-      // デバイスピクセル比を取得
-      final devicePixelRatio = WidgetsBinding.instance.window.devicePixelRatio;
+      // 固定の高解像度スケール係数を設定
+      const highResolutionScale = 8.0;
 
       // 描画用のPictureRecorderを作成
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
 
       // 高解像度に対応するためのスケール設定
-      final scaledWidth = (contentBounds.width * devicePixelRatio).round();
-      final scaledHeight = (contentBounds.height * devicePixelRatio).round();
-      canvas.scale(devicePixelRatio, devicePixelRatio);
+      final scaledWidth = (contentBounds.width * highResolutionScale).round();
+      final scaledHeight = (contentBounds.height * highResolutionScale).round();
+      canvas.scale(highResolutionScale, highResolutionScale);
 
       // 背景を描画（白色）
       canvas.drawRect(
