@@ -39,13 +39,32 @@ class CanvasPainter extends CustomPainter {
   /// 選択枠のダッシュパターン
   static const dashPattern = <double>[5, 5];
 
+  /// デバッグモードのフラグ
+  final bool debugMode;
+
+  /// (デバッグ用) グリッド線に表示するテキストの文字色
+  static const _debugTextColor = Colors.black87;
+
+  /// (デバッグ用) グリッド線に表示するテキストのフォントサイズ
+  static const _debugTextSize = 10.0;
+
+  /// (デバッグ用) グリッド線に表示するテキストのパディング
+  static const _debugTextPadding = 2.0;
+
+  /// (デバッグ用) グリッド線に表示するグローバル座標の間隔
+  static const _debugCoordinateInterval = 100.0;
+
   /// コンストラクタ
   ///
   /// [controller] 描画を管理するコントローラ
   /// [transform] 描画に適用する変換行列
   /// [handleSize] オブジェクト操作ハンドルのサイズ(デフォルト: `12.0`)
-  CanvasPainter({required this.controller, required this.transform, this.handleSize = 12.0})
-      : super(repaint: controller);
+  CanvasPainter({
+    required this.controller,
+    required this.transform,
+    this.handleSize = 12.0,
+    this.debugMode = false,
+  }) : super(repaint: controller);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -59,6 +78,11 @@ class CanvasPainter extends CustomPainter {
 
     // グリッドを描画
     _drawGrid(canvas, visibleRect);
+
+    // デバッグモードが有効な場合は座標を描画
+    if (debugMode) {
+      _drawDebugCoordinates(canvas, visibleRect);
+    }
 
     // すべてのオブジェクトを描画
     for (var object in controller.objects) {
@@ -133,6 +157,61 @@ class CanvasPainter extends CustomPainter {
     // 横のグリッドラインを描画
     for (double y = startY; y <= endY; y += gridSize) {
       canvas.drawLine(Offset(visibleRect.left, y), Offset(visibleRect.right, y), paint);
+    }
+  }
+
+  /// デバッグ用の座標を描画する
+  void _drawDebugCoordinates(Canvas canvas, Rect visibleRect) {
+    final textPainter = TextPainter(
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    );
+
+    // X軸の座標を描画（上部）
+    final startX = (visibleRect.left / _debugCoordinateInterval).floor() * _debugCoordinateInterval;
+    final endX = (visibleRect.right / _debugCoordinateInterval).ceil() * _debugCoordinateInterval;
+
+    for (double x = startX; x <= endX; x += _debugCoordinateInterval) {
+      final text = x.toStringAsFixed(0);
+      textPainter.text = TextSpan(
+        text: text,
+        style: TextStyle(
+          color: _debugTextColor,
+          fontSize: _debugTextSize,
+        ),
+      );
+      textPainter.layout();
+
+      // テキストを描画
+      textPainter.paint(
+        canvas,
+        Offset(x - textPainter.width / 2, visibleRect.top + _debugTextPadding),
+      );
+    }
+
+    // Y軸の座標を描画（右側）
+    final startY = (visibleRect.top / _debugCoordinateInterval).floor() * _debugCoordinateInterval;
+    final endY = (visibleRect.bottom / _debugCoordinateInterval).ceil() * _debugCoordinateInterval;
+
+    for (double y = startY; y <= endY; y += _debugCoordinateInterval) {
+      final text = y.toStringAsFixed(0);
+      textPainter.text = TextSpan(
+        text: text,
+        style: TextStyle(
+          color: _debugTextColor,
+          fontSize: _debugTextSize,
+        ),
+      );
+      textPainter.layout();
+
+      // テキストを描画
+      textPainter.paint(
+        canvas,
+        Offset(
+          visibleRect.right - textPainter.width - _debugTextPadding,
+          y - textPainter.height / 2,
+        ),
+      );
     }
   }
 
