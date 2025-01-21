@@ -703,44 +703,29 @@ class FlexiSketchController extends ChangeNotifier {
       // コンテンツの範囲を計算（マージン付き）
       final contentBounds = _calculateContentBounds();
 
-      // 固定の高解像度スケール係数を設定
-      const highResolutionScale = 8.0;
-
       // 描画用のPictureRecorderを作成
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
 
-      // 高解像度に対応するためのスケール設定
-      final scaledWidth = (contentBounds.width * highResolutionScale).round();
-      final scaledHeight = (contentBounds.height * highResolutionScale).round();
-      canvas.scale(highResolutionScale, highResolutionScale);
-
       // 背景を描画（白色）
       canvas.drawRect(
-          Offset.zero & contentBounds.size,
-          Paint()
-            ..color = Colors.white
-            ..isAntiAlias = true);
+        Offset.zero & contentBounds.size,
+        Paint()..color = Colors.white,
+      );
 
       // コンテンツの位置を調整
       canvas.translate(-contentBounds.left, -contentBounds.top);
 
-      // すべてのオブジェクトを描画（アンチエイリアス有効）
+      // すべてのオブジェクトを描画
       for (final object in _objects) {
-        // オブジェクトの Paint 設定を一時的に上書き
-        if (object is PathObject) {
-          object.paint.isAntiAlias = true;
-        }
         object.draw(canvas);
       }
 
       // 描画中のオブジェクトがあれば描画
       if (_currentPath != null) {
-        _currentPath!.paint.isAntiAlias = true;
         _currentPath!.draw(canvas);
       }
       if (_currentShape != null) {
-        _currentShape!.paint.isAntiAlias = true;
         _currentShape!.draw(canvas);
       }
 
@@ -748,7 +733,7 @@ class FlexiSketchController extends ChangeNotifier {
       final picture = recorder.endRecording();
 
       // より高解像度の画像に変換
-      final image = await picture.toImage(scaledWidth, scaledHeight);
+      final image = await picture.toImage(contentBounds.width.round(), contentBounds.height.round());
 
       // PNG形式でエンコード（可能な限り高品質に設定）
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
