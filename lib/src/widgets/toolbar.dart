@@ -26,13 +26,6 @@ class Toolbar extends StatefulWidget {
   /// データとして保存する際のコールバック
   final SaveSketchAsData? onSaveAsData;
 
-  /// ツールバーの表示状態
-  final bool isVisible;
-
-  // TODO: 表示状態を制御できていないので要修正
-  /// ツールバーの表示状態を変更するコールバック
-  final ValueChanged<bool>? onVisibilityChanged;
-
   /// ツールバーウィジェットを作成します。
   ///
   /// [controller] は必須で、スケッチの状態管理を行います。
@@ -41,23 +34,15 @@ class Toolbar extends StatefulWidget {
   const Toolbar({
     super.key,
     required this.controller,
-    this.isVisible = true,
-    this.onVisibilityChanged,
     this.onSaveAsImage,
     this.onSaveAsData,
   });
 
   @override
-  State<Toolbar> createState() => _ToolbarState();
+  State<Toolbar> createState() => ToolbarState();
 }
 
-class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
-  /// ツールバーの表示アニメーションを制御するコントローラ
-  late AnimationController _controller;
-
-  /// フェードインアニメーションの定義
-  late Animation<double> _fadeAnimation;
-
+class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   /// カラーピッカーの表示状態
   bool _isColorPickerExpanded = false;
 
@@ -76,35 +61,11 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    );
-    if (widget.isVisible) {
-      _controller.forward();
-    }
     widget.controller.addListener(_onControllerChanged);
   }
 
   @override
-  void didUpdateWidget(Toolbar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isVisible != oldWidget.isVisible) {
-      if (widget.isVisible) {
-        _controller.forward();
-      } else {
-        _controller.reverse();
-      }
-    }
-  }
-
-  @override
   void dispose() {
-    _controller.dispose();
     widget.controller.removeListener(_onControllerChanged);
     super.dispose();
   }
@@ -112,54 +73,35 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: AnimatedBuilder(
-        animation: _fadeAnimation,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(0, 100 * (1 - _fadeAnimation.value)),
-            child: Opacity(
-              opacity: _fadeAnimation.value,
-              child: child,
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 12,
+              offset: const Offset(0, -2),
             ),
-          );
-        },
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {}, // ジェスチャーをここで止める
-          child: Container(
-            margin: EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: MediaQuery.of(context).size.height > 600 ? 16 : 8,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildToolbarHandle(),
-                const SizedBox(height: 12),
-                _buildFileTools(),
-                const SizedBox(height: 12),
-                _buildDrawingTools(),
-                if (_isColorPickerExpanded) ...[
-                  const SizedBox(height: 12),
-                  _buildColorPalette(),
-                ],
-                const SizedBox(height: 12),
-                _buildEditingTools(),
-              ],
-            ),
-          ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildToolbarHandle(),
+            const SizedBox(height: 12),
+            _buildFileTools(),
+            const SizedBox(height: 12),
+            _buildDrawingTools(),
+            if (_isColorPickerExpanded) ...[
+              const SizedBox(height: 12),
+              _buildColorPalette(),
+            ],
+            const SizedBox(height: 12),
+            _buildEditingTools(),
+          ],
         ),
       ),
     );
@@ -169,19 +111,12 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   ///
   /// 上方向へのドラッグジェスチャーを検知し、ツールバーの表示/非表示を切り替える
   Widget _buildToolbarHandle() {
-    return GestureDetector(
-      onVerticalDragEnd: (details) {
-        if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
-          widget.onVisibilityChanged?.call(false);
-        }
-      },
-      child: Container(
-        width: 32,
-        height: 4,
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(2),
-        ),
+    return Container(
+      width: 32,
+      height: 4,
+      decoration: BoxDecoration(
+        color: Colors.grey.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(2),
       ),
     );
   }
