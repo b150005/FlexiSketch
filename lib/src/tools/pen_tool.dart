@@ -25,7 +25,7 @@ class PenTool implements DrawingTool {
       ..color = color
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round // 線の端を丸くする
-      ..strokeJoin = StrokeJoin.round; // 線の接合部も丸くする
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
   }
 }

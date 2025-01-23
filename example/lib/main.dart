@@ -38,7 +38,6 @@ class TestScreen extends StatefulWidget {
 class _TestScreenState extends State<TestScreen> {
   Map<String, dynamic>? _currentData;
   final TextEditingController _jsonController = TextEditingController();
-  ImageLoadingState? _loadingState;
 
   final FlexiSketchController _controller = FlexiSketchController();
 
@@ -77,7 +76,7 @@ class _TestScreenState extends State<TestScreen> {
           IconButton(
             icon: const Icon(Icons.image),
             tooltip: '画像を読み込んでキャンバスを上書き',
-            onPressed: _loadingState != null ? null : () => _pickAndLoadImage(context),
+            onPressed: () => _pickAndLoadImage(context),
           ),
         ],
       ),
@@ -123,7 +122,7 @@ class _TestScreenState extends State<TestScreen> {
                   },
 
                   // DEBUG: JSONとして保存
-                  onSaveAsData: (context, jsonData, imageData, progress) async {
+                  onSaveAsData: (context, jsonData, imageData) async {
                     if (jsonData == null || imageData == null) {
                       return;
                     }
@@ -163,39 +162,12 @@ class _TestScreenState extends State<TestScreen> {
                     }
                   },
                   onError: (message) {
-                    setState(() {
-                      _loadingState = null;
-                    });
+                    developer.log(message);
                   },
                 ),
               ),
             ],
           ),
-          // ローディングオーバーレイ
-          if (_loadingState != null)
-            Container(
-              color: Colors.black54,
-              child: Center(
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_loadingState!.phase.message),
-                        const SizedBox(
-                          height: 3,
-                        ),
-                        const Text(
-                          'この処理には時間がかかります',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -208,10 +180,6 @@ class _TestScreenState extends State<TestScreen> {
       final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
       if (pickedFile != null) {
-        setState(() {
-          _loadingState = ImageLoadingState.initial;
-        });
-
         final bytes = await pickedFile.readAsBytes();
 
         // 現在のキャンバスサイズを取得
@@ -232,24 +200,14 @@ class _TestScreenState extends State<TestScreen> {
           bytes,
           width: canvasSize.width,
           height: canvasSize.height,
-          onProgress: (state) {
-            if (mounted) {
-              setState(() {
-                _loadingState = state;
-              });
-            }
-          },
         );
 
         setState(() {
           _currentData = jsonData;
-          _loadingState = null;
         });
       }
     } catch (e) {
-      setState(() {
-        _loadingState = null;
-      });
+      developer.log(e.toString());
     }
   }
 }

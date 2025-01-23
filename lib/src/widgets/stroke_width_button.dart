@@ -94,8 +94,8 @@ class _StrokeWidthButtonState extends State<StrokeWidthButton> {
 
   /// オーバーレイを表示する
   void _showOverlay() {
-    _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
+    final OverlayEntry overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(overlayEntry);
   }
 
   /// オーバーレイを削除する
@@ -106,20 +106,20 @@ class _StrokeWidthButtonState extends State<StrokeWidthButton> {
 
   /// オーバーレイエントリを作成する
   OverlayEntry _createOverlayEntry() {
-    const overlayWidth = 240.0;
-    const overlayHeight = 100.0;
-    const padding = 8.0;
+    const double overlayWidth = 240.0;
+    const double overlayHeight = 100.0;
+    const double padding = 8.0;
 
     // 画面サイズを取得
-    final screenSize = MediaQuery.of(context).size;
+    final Size screenSize = MediaQuery.of(context).size;
 
     // ボタンの位置情報を取得
-    final box = context.findRenderObject() as RenderBox;
-    final buttonSize = box.size;
-    final buttonPosition = box.localToGlobal(Offset.zero);
+    final RenderBox box = context.findRenderObject() as RenderBox;
+    final Size buttonSize = box.size;
+    final Offset buttonPosition = box.localToGlobal(Offset.zero);
 
     // スライダーを表示する方向を決定（右端からの距離が overlayWidth の半分より小さい場合は左に表示）
-    final showToLeft = (screenSize.width - buttonPosition.dx) < overlayWidth / 2;
+    final bool showToLeft = (screenSize.width - buttonPosition.dx) < overlayWidth / 2;
 
     // オフセットを計算
     final double dx = showToLeft

@@ -617,7 +617,7 @@ class FlexiSketchController extends ChangeNotifier {
   }) async {
     try {
       // 画像オブジェクトの生成
-      final (imageObject, _) = await FlexiSketchDataHelper.createImageObjectFromBytes(
+      final (ImageObject imageObject, Size _) = await FlexiSketchDataHelper.createImageObjectFromBytes(
         imageData,
         config: config,
         canvasSize: _canvasSize,
@@ -641,14 +641,10 @@ class FlexiSketchController extends ChangeNotifier {
   /// 画像データを含む場合は UI スレッドのブロッキングが発生します
   Future<Map<String, dynamic>> generateJsonData([
     SketchMetadata? metadata,
-    void Function(double progress)? onProgress,
   ]) async {
     try {
-      onProgress?.call(0.01);
-
-      final totalObjects = _objects.length;
+      final int totalObjects = _objects.length;
       if (totalObjects == 0) {
-        onProgress?.call(1.0);
         return {
           'metadata': metadata?.toJson() ?? SketchMetadata.create('Untitled Sketch').toJson(),
           'content': {
@@ -663,20 +659,15 @@ class FlexiSketchController extends ChangeNotifier {
       }
 
       // 各オブジェクトのシリアライズを個別に実行して進捗を監視
-      final serializedObjects = <Map<String, dynamic>>[];
-      var completedObjects = 0;
+      final List<Map<String, dynamic>> serializedObjects = <Map<String, dynamic>>[];
 
       // オブジェクトごとに順次シリアライズ
-      for (final object in _objects) {
-        final json = await DrawableObjectSerializer.instance.toJson(object);
+      for (final DrawableObject object in _objects) {
+        final Map<String, dynamic> json = await DrawableObjectSerializer.instance.toJson(object);
         serializedObjects.add(json);
-
-        completedObjects++;
-        final progress = completedObjects / totalObjects;
-        onProgress?.call(progress);
       }
 
-      final content = {
+      final Map<String, Object> content = {
         'version': 1,
         'canvas': {
           'width': _canvasSize?.width ?? 0,
@@ -701,11 +692,11 @@ class FlexiSketchController extends ChangeNotifier {
 
     try {
       // コンテンツの範囲を計算（マージン付き）
-      final contentBounds = _calculateContentBounds();
+      final Rect contentBounds = _calculateContentBounds();
 
       // 描画用のPictureRecorderを作成
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
+      final ui.PictureRecorder recorder = ui.PictureRecorder();
+      final Canvas canvas = Canvas(recorder);
 
       // 背景を描画（白色）
       canvas.drawRect(
@@ -730,13 +721,13 @@ class FlexiSketchController extends ChangeNotifier {
       }
 
       // Pictureを完成させる
-      final picture = recorder.endRecording();
+      final ui.Picture picture = recorder.endRecording();
 
       // より高解像度の画像に変換
-      final image = await picture.toImage(contentBounds.width.round(), contentBounds.height.round());
+      final ui.Image image = await picture.toImage(contentBounds.width.round(), contentBounds.height.round());
 
       // PNG形式でエンコード（可能な限り高品質に設定）
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) {
         throw const ImageGenerationError('Failed to convert image to byte data');
       }
@@ -764,7 +755,7 @@ class FlexiSketchController extends ChangeNotifier {
 
     // 全オブジェクトのバウンディングボックスを統合
     Rect bounds = _objects.first.bounds;
-    for (final object in _objects.skip(1)) {
+    for (final DrawableObject object in _objects.skip(1)) {
       bounds = bounds.expandToInclude(object.bounds);
     }
 
@@ -795,15 +786,15 @@ class FlexiSketchController extends ChangeNotifier {
       _objects.clear();
 
       // キャンバスサイズの復元
-      final canvas = json['canvas'] as Map<String, dynamic>;
+      final Map<String, dynamic> canvas = json['canvas'];
       _canvasSize = Size(
         (canvas['width'] as num).toDouble(),
         (canvas['height'] as num).toDouble(),
       );
 
       // オブジェクトの復元
-      final serializedObjects = json['objects'] as List<dynamic>;
-      final deserializedObjects = await Future.wait(
+      final List<dynamic> serializedObjects = json['objects'];
+      final List<DrawableObject> deserializedObjects = await Future.wait(
         serializedObjects.map((obj) => DrawableObjectSerializer.instance.fromJson(obj as Map<String, dynamic>)),
       );
 
@@ -826,23 +817,23 @@ class FlexiSketchController extends ChangeNotifier {
 
     // 全オブジェクトのバウンディングボックスを計算
     Rect contentBounds = _objects.first.bounds;
-    for (final object in _objects.skip(1)) {
+    for (final DrawableObject object in _objects.skip(1)) {
       contentBounds = contentBounds.expandToInclude(object.bounds);
     }
 
     // コンテンツと画面の両方のアスペクト比を計算
-    final contentAspectRatio = contentBounds.width / contentBounds.height;
-    final viewportAspectRatio = viewportSize.width / viewportSize.height;
+    final double contentAspectRatio = contentBounds.width / contentBounds.height;
+    final double viewportAspectRatio = viewportSize.width / viewportSize.height;
 
     // スケールを計算（幅と高さの両方に20pxのパディングを考慮）
-    final scaleX = (viewportSize.width - 40) / contentBounds.width;
-    final scaleY = (viewportSize.height - 40) / contentBounds.height;
+    final double scaleX = (viewportSize.width - 40) / contentBounds.width;
+    final double scaleY = (viewportSize.height - 40) / contentBounds.height;
 
     // アスペクト比を維持しながら、最適なスケールを選択
-    final scaleFactor = contentAspectRatio > viewportAspectRatio ? scaleX : scaleY;
+    final double scaleFactor = contentAspectRatio > viewportAspectRatio ? scaleX : scaleY;
 
     // 変換行列を作成
-    final result = Matrix4.identity();
+    final Matrix4 result = Matrix4.identity();
     result.setScaleAndCenter(scaleFactor, contentBounds.center, viewportSize);
 
     return result;

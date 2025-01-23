@@ -1,4 +1,5 @@
-import 'package:flexi_sketch/src/utils/progress_handler.dart';
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -45,10 +46,9 @@ class FlexiSketchWidget extends StatefulWidget {
   State<FlexiSketchWidget> createState() => FlexiSketchWidgetState();
 }
 
-class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandler {
+class FlexiSketchWidgetState extends State<FlexiSketchWidget> {
   // 保存処理用の進捗状態
   bool _isSaving = false;
-  double _saveProgress = 0.0;
 
   /// InfiniteCanvasへの参照
   final GlobalKey<InfiniteCanvasState> _canvasKey = GlobalKey<InfiniteCanvasState>();
@@ -71,8 +71,6 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
 
   @override
   void dispose() {
-    // ProgressHandler の dispose を呼び出す
-    disposeProgress();
     super.dispose();
   }
 
@@ -116,7 +114,6 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
                         ? (context, imageData) async {
                             setState(() {
                               _isSaving = true;
-                              _saveProgress = 0.0;
                             });
 
                             try {
@@ -129,20 +126,19 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
                           }
                         : null,
                     onSaveAsData: widget.onSaveAsData != null
-                        ? (context, jsonData, imageData, progress) async {
+                        ? (context, jsonData, imageData) async {
                             setState(() {
                               _isSaving = true;
-                              _saveProgress = progress;
                             });
 
                             try {
-                              await widget.onSaveAsData!(context, jsonData, imageData, progress);
+                              await widget.onSaveAsData!(context, jsonData, imageData);
+                            } catch (e) {
+                              developer.log(e.toString());
                             } finally {
-                              if (progress >= 1.0) {
-                                setState(() {
-                                  _isSaving = false;
-                                });
-                              }
+                              setState(() {
+                                _isSaving = false;
+                              });
                             }
                           }
                         : null,

@@ -210,23 +210,17 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
               ToolButton(
                 icon: Icons.save,
                 onPressed: () async {
-                  // FIXME: Progress値の指定についてはもうちょっとバランス良くできそう
                   // 初期状況の通知
-                  await widget.onSaveAsData!(context, null, null, 0.01);
-                  await Future<void>.delayed(const Duration(milliseconds: 50));
+                  await widget.onSaveAsData!(context, null, null);
 
                   // JSONデータ生成中は進捗状況を通知
-                  final Map<String, dynamic> jsonData = await widget.controller.generateJsonData(
-                    null,
-                    // 画像データの生成が残っているので progress = 1 の場合は進捗状況を 99% とする
-                    (progress) => widget.onSaveAsData!(context, null, null, progress == 1 ? 0.99 : progress),
-                  );
+                  final Map<String, dynamic> jsonData = await widget.controller.generateJsonData(null);
 
                   // 画像データの生成
                   final Uint8List imageData = await widget.controller.generateImageData();
 
                   if (!mounted) return;
-                  widget.onSaveAsData!(context, jsonData, imageData, 1.0);
+                  widget.onSaveAsData!(context, jsonData, imageData);
                 },
                 tooltip: 'データとして保存',
               ),
@@ -352,7 +346,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   /// ToolButtonと同じサイズ・デザインで統一感のある表示を行う
   Widget _buildColorPalette() {
     return SizedBox(
-      height: 36, // ToolButtonと同じ高さ
+      height: 36,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _predefinedColors.length,
@@ -364,13 +358,13 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
               widget.controller.setColor(color);
               setState(() => _isColorPickerExpanded = false);
             },
-            borderRadius: BorderRadius.circular(6), // ToolButtonと同じ角丸
+            borderRadius: BorderRadius.circular(6),
             child: Container(
-              width: 36, // ToolButtonと同じ幅
-              height: 36, // ToolButtonと同じ高さ
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: color,
-                borderRadius: BorderRadius.circular(6), // ToolButtonと同じ角丸
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: Colors.grey.withValues(alpha: 0.3),
                   width: 1,
@@ -392,7 +386,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: children.map((child) {
-        final index = children.indexOf(child);
+        final int index = children.indexOf(child);
         return Padding(
           padding: EdgeInsets.only(
             left: index == 0 ? 0 : 4,
@@ -411,7 +405,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: SizedBox(
-        height: 24, // ToolButtonの高さの2/3程度
+        height: 24,
         child: VerticalDivider(
           thickness: 1,
           color: Colors.grey.withValues(alpha: 0.3),

@@ -1,10 +1,11 @@
 import 'dart:ui' as ui;
+import 'dart:developer' as developer;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
 import '../config/flexi_sketch_size_config.dart';
-import '../loading/image_loading_state.dart';
 import '../objects/image_object.dart';
 import 'flexi_sketch_size_helper.dart';
 
@@ -23,30 +24,30 @@ class FlexiSketchDataHelper {
     Size? canvasSize,
   }) async {
     // 画像をデコード
-    final decodedImage = await decodeImageFromBytes(imageData);
+    final ui.Image decodedImage = await decodeImageFromBytes(imageData);
 
     // 画像の元サイズを取得
-    final imageSize = Size(
+    final Size imageSize = Size(
       decodedImage.width.toDouble(),
       decodedImage.height.toDouble(),
     );
 
     // キャンバスサイズの決定
-    final effectiveCanvasSize = canvasSize ??
+    final Size effectiveCanvasSize = canvasSize ??
         FlexiSketchSizeHelper.calculateCanvasSize(
           imageSize: imageSize,
           config: config,
         );
 
     // 画像の表示サイズを計算
-    final displaySize = FlexiSketchSizeHelper.calculateDisplaySize(
+    final Size displaySize = FlexiSketchSizeHelper.calculateDisplaySize(
       imageSize: imageSize,
       canvasSize: effectiveCanvasSize,
       config: config,
     );
 
     // 画像オブジェクトを生成
-    final imageObject = createImageObject(
+    final ImageObject imageObject = createImageObject(
       image: decodedImage,
       center: getCanvasCenter(effectiveCanvasSize),
       size: displaySize,
@@ -65,66 +66,29 @@ class FlexiSketchDataHelper {
     double? width,
     double? height,
     FlexiSketchSizeConfig config = FlexiSketchSizeConfig.defaultConfig,
-    ProgressCallback? onProgress,
   }) async {
-    final controller = FlexiSketchController();
+    final FlexiSketchController controller = FlexiSketchController();
 
     try {
-      onProgress?.call(ImageLoadingState(
-        progress: 0.0,
-        phase: ImageLoadingPhase.decoding,
-      ));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-
-      final canvasSize = width != null && height != null ? Size(width, height) : null;
+      final Size? canvasSize = width != null && height != null ? Size(width, height) : null;
 
       // 画像オブジェクトの生成
-      final (imageObject, effectiveCanvasSize) = await createImageObjectFromBytes(
+      final (ImageObject imageObject, Size effectiveCanvasSize) = await createImageObjectFromBytes(
         imageData,
         config: config,
         canvasSize: canvasSize,
       );
 
-      onProgress?.call(ImageLoadingState(
-        progress: 0.023,
-        phase: ImageLoadingPhase.creating,
-      ));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-
       // コントローラの設定
       controller.updateCanvasSize(effectiveCanvasSize);
       controller.objects.add(imageObject);
 
-      onProgress?.call(ImageLoadingState(
-        progress: 0.046,
-        phase: ImageLoadingPhase.serializing,
-      ));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-
       // JSONデータを生成
-      final result = await controller.generateJsonData(
-        null, // metadata
-        (progress) async {
-          // 4.6%から100%までの範囲で進捗を通知
-          final totalProgress = 0.046 + (progress * 0.954);
-          onProgress?.call(ImageLoadingState(
-            progress: totalProgress,
-            phase: ImageLoadingPhase.serializing,
-          ));
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-        },
-      );
-
-      onProgress?.call(ImageLoadingState(
-        progress: 1.0,
-        phase: ImageLoadingPhase.completed,
-      ));
-      // 完了 UI は表示されなくても問題ないのでコメントアウト
-      // await Future<void>.delayed(const Duration(milliseconds: 50));
+      final Map<String, dynamic> result = await controller.generateJsonData(null);
 
       return result;
     } catch (e) {
-      onProgress?.call(ImageLoadingState.withError(e));
+      developer.log(e.toString());
       rethrow;
     } finally {
       controller.dispose();
@@ -135,8 +99,8 @@ class FlexiSketchDataHelper {
   ///
   /// [imageData] 画像のバイトデータ
   static Future<ui.Image> decodeImageFromBytes(Uint8List imageData) async {
-    final codec = await ui.instantiateImageCodec(imageData);
-    final frame = await codec.getNextFrame();
+    final ui.Codec codec = await ui.instantiateImageCodec(imageData);
+    final ui.FrameInfo frame = await codec.getNextFrame();
     return frame.image;
   }
 
@@ -150,7 +114,7 @@ class FlexiSketchDataHelper {
     required Offset center,
     Size? size,
   }) {
-    final imageSize = size ??
+    final Size imageSize = size ??
         Size(
           image.width.toDouble(),
           image.height.toDouble(),

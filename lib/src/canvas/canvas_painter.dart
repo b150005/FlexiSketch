@@ -19,40 +19,40 @@ class CanvasPainter extends CustomPainter {
   final double handleSize;
 
   /// 選択枠の色
-  static const selectionBorderColor = Colors.lightBlue;
+  static const Color selectionBorderColor = Colors.lightBlue;
 
   /// 選択ハンドルの枠線色
-  static const handleBorderColor = Colors.lightBlue;
+  static const Color handleBorderColor = Colors.lightBlue;
 
   /// 選択ハンドルの背景色
-  static const handleFillColor = Colors.white;
+  static const Color handleFillColor = Colors.white;
 
   /// 削除ハンドルの色
-  static const deleteHandleColor = Colors.red;
+  static const Color deleteHandleColor = Colors.red;
 
   /// 選択枠の線幅
-  static const selectionBorderWidth = 2.0;
+  static const double selectionBorderWidth = 2.0;
 
   /// ハンドル枠の線幅
-  static const handleBorderWidth = 2.0;
+  static const double handleBorderWidth = 2.0;
 
   /// 選択枠のダッシュパターン
-  static const dashPattern = <double>[5, 5];
+  static const List<double> dashPattern = <double>[5, 5];
 
   /// デバッグモードのフラグ
   final bool debugMode;
 
   /// (デバッグ用) グリッド線に表示するテキストの文字色
-  static const _debugTextColor = Colors.black87;
+  static const Color _debugTextColor = Colors.black87;
 
   /// (デバッグ用) グリッド線に表示するテキストのフォントサイズ
-  static const _debugTextSize = 10.0;
+  static const double _debugTextSize = 10.0;
 
   /// (デバッグ用) グリッド線に表示するテキストのパディング
-  static const _debugTextPadding = 2.0;
+  static const double _debugTextPadding = 2.0;
 
   /// (デバッグ用) グリッド線に表示するグローバル座標の間隔
-  static const _debugCoordinateInterval = 100.0;
+  static const double _debugCoordinateInterval = 100.0;
 
   /// コンストラクタ
   ///
@@ -127,8 +127,8 @@ class CanvasPainter extends CustomPainter {
     // 変換行列の逆行列を計算
     final Matrix4 inverseTransform = Matrix4.inverted(transform);
 
-    final topLeft = inverseTransform.transform3(Vector3(0, 0, 0));
-    final bottomRight = inverseTransform.transform3(Vector3(size.width, size.height, 0));
+    final Vector3 topLeft = inverseTransform.transform3(Vector3(0, 0, 0));
+    final Vector3 bottomRight = inverseTransform.transform3(Vector3(size.width, size.height, 0));
 
     // 矩形を作成
     return Rect.fromPoints(Offset(topLeft.x, topLeft.y), Offset(bottomRight.x, bottomRight.y));
@@ -139,15 +139,15 @@ class CanvasPainter extends CustomPainter {
   /// このメソッドは、指定された可視領域内にグリッドを描画します。
   /// グリッドのサイズは固定されており、指定された色と透明度で描画されます。
   void _drawGrid(Canvas canvas, Rect visibleRect) {
-    final paint = Paint()
+    final Paint paint = Paint()
       ..color = Colors.grey.withValues(alpha: 0.5) // グリッドの色と透明度
       ..strokeWidth = 0.5; // グリッドの線の太さ
 
-    const gridSize = 20.0;
-    final startX = (visibleRect.left / gridSize).floor() * gridSize; // グリッドの開始X座標
-    final endX = (visibleRect.right / gridSize).ceil() * gridSize; // グリッドの終了X座標
-    final startY = (visibleRect.top / gridSize).floor() * gridSize; // グリッドの開始Y座標
-    final endY = (visibleRect.bottom / gridSize).ceil() * gridSize; // グリッドの終了Y座標
+    const double gridSize = 20.0;
+    final double startX = (visibleRect.left / gridSize).floor() * gridSize; // グリッドの開始X座標
+    final double endX = (visibleRect.right / gridSize).ceil() * gridSize; // グリッドの終了X座標
+    final double startY = (visibleRect.top / gridSize).floor() * gridSize; // グリッドの開始Y座標
+    final double endY = (visibleRect.bottom / gridSize).ceil() * gridSize; // グリッドの終了Y座標
 
     // 縦のグリッドラインを描画
     for (double x = startX; x <= endX; x += gridSize) {
@@ -162,17 +162,17 @@ class CanvasPainter extends CustomPainter {
 
   /// デバッグ用の座標を描画する
   void _drawDebugCoordinates(Canvas canvas, Rect visibleRect) {
-    final textPainter = TextPainter(
+    final TextPainter textPainter = TextPainter(
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
     );
 
     // X軸の座標を描画（上部）
-    final startX = (visibleRect.left / _debugCoordinateInterval).floor() * _debugCoordinateInterval;
-    final endX = (visibleRect.right / _debugCoordinateInterval).ceil() * _debugCoordinateInterval;
+    final double startX = (visibleRect.left / _debugCoordinateInterval).floor() * _debugCoordinateInterval;
+    final double endX = (visibleRect.right / _debugCoordinateInterval).ceil() * _debugCoordinateInterval;
 
     for (double x = startX; x <= endX; x += _debugCoordinateInterval) {
-      final text = x.toStringAsFixed(0);
+      final String text = x.toStringAsFixed(0);
       textPainter.text = TextSpan(
         text: text,
         style: TextStyle(
@@ -190,11 +190,11 @@ class CanvasPainter extends CustomPainter {
     }
 
     // Y軸の座標を描画（右側）
-    final startY = (visibleRect.top / _debugCoordinateInterval).floor() * _debugCoordinateInterval;
-    final endY = (visibleRect.bottom / _debugCoordinateInterval).ceil() * _debugCoordinateInterval;
+    final double startY = (visibleRect.top / _debugCoordinateInterval).floor() * _debugCoordinateInterval;
+    final double endY = (visibleRect.bottom / _debugCoordinateInterval).ceil() * _debugCoordinateInterval;
 
     for (double y = startY; y <= endY; y += _debugCoordinateInterval) {
-      final text = y.toStringAsFixed(0);
+      final String text = y.toStringAsFixed(0);
       textPainter.text = TextSpan(
         text: text,
         style: TextStyle(
@@ -232,7 +232,7 @@ class CanvasPainter extends CustomPainter {
   /// [canvas] 描画対象のキャンバス
   /// [object] 選択されたオブジェクト
   void _drawSelectionUI(Canvas canvas, DrawableObject object) {
-    final bounds = object.bounds;
+    final Rect bounds = object.bounds;
 
     // 選択枠を描画
     _drawSelectionBorder(canvas, bounds);
@@ -248,15 +248,15 @@ class CanvasPainter extends CustomPainter {
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
   void _drawSelectionBorder(Canvas canvas, Rect bounds) {
-    final paint = Paint()
+    final Paint paint = Paint()
       ..color = selectionBorderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = selectionBorderWidth;
 
     // 点線のパスを作成
-    final path = Path();
-    var start = bounds.topLeft;
-    var current = start;
+    final Path path = Path();
+    Offset start = bounds.topLeft;
+    Offset current = start;
 
     for (final point in [
       bounds.topRight,
@@ -278,15 +278,15 @@ class CanvasPainter extends CustomPainter {
   /// [end] 終了点
   /// [pattern] 点線のパターン(実戦と空白の長さの配列)
   void _addDashedLine(Path path, Offset start, Offset end, List<double> pattern) {
-    final dx = end.dx - start.dx;
-    final dy = end.dy - start.dy;
-    final distance = (end - start).distance;
-    final steps = pattern.reduce((a, b) => a + b);
-    final count = (distance / steps).ceil();
+    final double dx = end.dx - start.dx;
+    final double dy = end.dy - start.dy;
+    final double distance = (end - start).distance;
+    final double steps = pattern.reduce((a, b) => a + b);
+    final int count = (distance / steps).ceil();
 
-    var x = start.dx;
-    var y = start.dy;
-    var drawn = true;
+    double x = start.dx;
+    double y = start.dy;
+    bool drawn = true;
 
     path.moveTo(start.dx, start.dy);
 
@@ -310,11 +310,11 @@ class CanvasPainter extends CustomPainter {
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
   void _drawCornerHandles(Canvas canvas, Rect bounds) {
-    final handlePaint = Paint()
+    final Paint handlePaint = Paint()
       ..color = handleFillColor
       ..style = PaintingStyle.fill;
 
-    final handleBorderPaint = Paint()
+    final Paint handleBorderPaint = Paint()
       ..color = handleBorderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = handleBorderWidth;
@@ -336,16 +336,16 @@ class CanvasPainter extends CustomPainter {
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
   void _drawRotationHandle(Canvas canvas, Rect bounds) {
-    final handlePaint = Paint()
+    final Paint handlePaint = Paint()
       ..color = handleFillColor
       ..style = PaintingStyle.fill;
 
-    final handleBorderPaint = Paint()
+    final Paint handleBorderPaint = Paint()
       ..color = handleBorderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = handleBorderWidth;
 
-    final rotationHandle = Offset(bounds.center.dx, bounds.top - 20);
+    final Offset rotationHandle = Offset(bounds.center.dx, bounds.top - 20);
 
     canvas
       ..drawCircle(rotationHandle, handleSize / 2, handlePaint)
@@ -358,16 +358,16 @@ class CanvasPainter extends CustomPainter {
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
   void _drawDeleteHandle(Canvas canvas, Rect bounds) {
-    final handlePaint = Paint()
+    final Paint handlePaint = Paint()
       ..color = deleteHandleColor
       ..style = PaintingStyle.fill;
 
-    final handleBorderPaint = Paint()
+    final Paint handleBorderPaint = Paint()
       ..color = handleBorderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = handleBorderWidth;
 
-    final deleteHandle = Offset(bounds.center.dx, bounds.bottom + 20);
+    final Offset deleteHandle = Offset(bounds.center.dx, bounds.bottom + 20);
 
     canvas
       ..drawCircle(deleteHandle, handleSize / 2, handlePaint)

@@ -50,8 +50,8 @@ class PathObject extends DrawableObject {
   @override
   bool checkIntersection(Path other) {
     try {
-      final transformedPath = _path.transform(transform.storage);
-      final intersectionPath = Path.combine(
+      final Path transformedPath = _path.transform(transform.storage);
+      final Path intersectionPath = Path.combine(
         PathOperation.intersect,
         transformedPath,
         other,
@@ -70,14 +70,14 @@ class PathObject extends DrawableObject {
   @override
   bool checkContainsPoint(Offset localPoint) {
     try {
-      final testPath = Path()
+      final Path testPath = Path()
         ..addRect(Rect.fromCenter(
           center: localPoint,
           width: 10.0,
           height: 10.0,
         ));
 
-      final intersectionPath = Path.combine(
+      final Path intersectionPath = Path.combine(
         PathOperation.intersect,
         _path,
         testPath,
@@ -91,8 +91,8 @@ class PathObject extends DrawableObject {
 
   @override
   PathObject clone() {
-    final clonedPath = Path()..addPath(_path, Offset.zero);
-    final clonedPaint = Paint()
+    final Path clonedPath = Path()..addPath(_path, Offset.zero);
+    final Paint clonedPaint = Paint()
       ..color = paint.color
       ..strokeWidth = paint.strokeWidth
       ..style = paint.style
@@ -100,7 +100,7 @@ class PathObject extends DrawableObject {
       ..strokeJoin = paint.strokeJoin
       ..blendMode = paint.blendMode;
 
-    final clone = PathObject(
+    final PathObject clone = PathObject(
       inputPath: clonedPath,
       paint: clonedPaint,
     );

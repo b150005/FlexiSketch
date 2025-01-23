@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../objects/path_object.dart';
@@ -11,15 +13,15 @@ class PathObjectSerializer implements ObjectSerializer<PathObject> {
 
   @override
   Future<PathObject> fromJson(Map<String, dynamic> json) async {
-    final pathData = json['path'] as Map<String, dynamic>;
-    final points = (pathData['points'] as List<dynamic>)
+    final Map<String, dynamic> pathData = json['path'];
+    final List<dynamic> points = (pathData['points'])
         .map((point) => Offset(
               (point['x'] as num).toDouble(),
               (point['y'] as num).toDouble(),
             ))
         .toList();
 
-    final path = Path();
+    final Path path = Path();
     if (points.isNotEmpty) {
       path.moveTo(points[0].dx, points[0].dy);
       for (final point in points.skip(1)) {
@@ -27,7 +29,7 @@ class PathObjectSerializer implements ObjectSerializer<PathObject> {
       }
     }
 
-    final paint = Paint()
+    final Paint paint = Paint()
       ..color = Color(pathData['paint']['color'] as int)
       ..strokeWidth = (pathData['paint']['strokeWidth'] as num).toDouble()
       ..style = PaintingStyle.stroke
@@ -42,8 +44,8 @@ class PathObjectSerializer implements ObjectSerializer<PathObject> {
 
   @override
   Map<String, dynamic> toJson(PathObject object) {
-    final pathMetrics = object.path.computeMetrics();
-    final points = <Map<String, double>>[];
+    final PathMetrics pathMetrics = object.path.computeMetrics();
+    final List<Map<String, double>> points = <Map<String, double>>[];
 
     for (final metric in pathMetrics) {
       for (double distance = 0; distance <= metric.length; distance += 1) {

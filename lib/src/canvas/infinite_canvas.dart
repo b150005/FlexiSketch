@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
+import '../objects/drawable_object.dart';
 import 'canvas_painter.dart';
 
 /// 無限キャンバスウィジェット
@@ -82,6 +83,7 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
               controller: widget.controller,
               transform: _transformationController.value,
               handleSize: _handleSize,
+              debugMode: true,
             ),
             child: Transform(
               transform: _transformationController.value,
@@ -109,12 +111,11 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
 
   void setInitialTransform() {
     if (!mounted) return;
-
-    final size = context.size;
+    final Size? size = context.size;
     if (size == null) return;
 
     // コントローラから初期変換を取得
-    final initialTransform = widget.controller.calculateInitialTransform(size);
+    final Matrix4? initialTransform = widget.controller.calculateInitialTransform(size);
     if (initialTransform != null) {
       _transformationController.value = initialTransform;
     }
@@ -155,11 +156,11 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
   _HandleType? _getHandleAtPoint(Offset point) {
     if (!widget.controller.hasSelection) return null;
 
-    final selectedObject = widget.controller.selectedObject!;
-    final bounds = selectedObject.bounds;
+    final DrawableObject selectedObject = widget.controller.selectedObject!;
+    final Rect bounds = selectedObject.bounds;
 
     // 各ハンドルの位置
-    final handlePositions = {
+    final Map<_HandleType, Offset> handlePositions = {
       _HandleType.topLeft: bounds.topLeft,
       _HandleType.topRight: bounds.topRight,
       _HandleType.bottomLeft: bounds.bottomLeft,
@@ -171,8 +172,8 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
     // 変換行列を適用した座標でハンドルを判定
     for (final entry in handlePositions.entries) {
       // オブジェクトのローカル座標をスクリーン座標に変換
-      final handlePos = _transformLocalPointToScreen(entry.value);
-      final distance = (point - handlePos).distance;
+      final Offset handlePos = _transformLocalPointToScreen(entry.value);
+      final double distance = (point - handlePos).distance;
 
       if (distance <= _handleHitArea) {
         return entry.key;
@@ -184,8 +185,8 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
 
   /// オブジェクトのローカル座標をスクリーン座標に変換するヘルパーメソッド
   Offset _transformLocalPointToScreen(Offset localPoint) {
-    final matrix = _transformationController.value;
-    final transformed = MatrixUtils.transformPoint(matrix, localPoint);
+    final Matrix4 matrix = _transformationController.value;
+    final Offset transformed = MatrixUtils.transformPoint(matrix, localPoint);
     return transformed;
   }
 
@@ -201,7 +202,7 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
     if (details.pointerCount != 1) return;
 
     // 焦点位置をシーン座標に変換
-    final localPosition = _transformationController.toScene(details.localFocalPoint);
+    final Offset localPosition = _transformationController.toScene(details.localFocalPoint);
 
     if (widget.controller.isToolSelected) {
       widget.controller.startDrawing(localPosition);
@@ -232,7 +233,8 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
   void _handleScaleUpdate(ScaleUpdateDetails details) {
     if (details.pointerCount == 1) {
       // 焦点位置をシーン座標に変換
-      final localPosition = _transformationController.toScene(details.localFocalPoint);
+      /// 現在のカーソル位置(グローバル座標)
+      final Offset localPosition = _transformationController.toScene(details.localFocalPoint);
 
       // ツールが選択されている場合
       if (widget.controller.isToolSelected) {
@@ -241,7 +243,7 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
       }
       // 指がハンドル上にあり、オブジェクトが選択されている場合
       else if (widget.controller.hasSelection) {
-        final center = widget.controller.selectedObject!.bounds.center;
+        final Offset center = widget.controller.selectedObject!.bounds.center;
 
         switch (_activeHandle) {
           case _HandleType.topLeft:
@@ -249,19 +251,19 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
           case _HandleType.bottomLeft:
           case _HandleType.bottomRight:
             // リサイズ処理
-            final initialDistance = (_lastFocalPoint - _transformLocalPointToScreen(center)).distance;
-            final currentDistance = (details.localFocalPoint - _transformLocalPointToScreen(center)).distance;
-            final scale = currentDistance / initialDistance;
+            final double initialDistance = (_lastFocalPoint - _transformLocalPointToScreen(center)).distance;
+            final double currentDistance = (details.localFocalPoint - _transformLocalPointToScreen(center)).distance;
+            final double scale = currentDistance / initialDistance;
 
             widget.controller.resizeSelectedObject(scale);
             break;
 
           case _HandleType.rotate:
             // 回転処理
-            final screenCenter = _transformLocalPointToScreen(center);
-            final lastAngle = (_lastFocalPoint - screenCenter).direction;
-            final currentAngle = (details.localFocalPoint - screenCenter).direction;
-            final rotation = currentAngle - lastAngle;
+            final Offset screenCenter = _transformLocalPointToScreen(center);
+            final double lastAngle = (_lastFocalPoint - screenCenter).direction;
+            final double currentAngle = (details.localFocalPoint - screenCenter).direction;
+            final double rotation = currentAngle - lastAngle;
 
             widget.controller.rotateSelectedObject(rotation);
             break;
@@ -272,8 +274,8 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
 
           case null:
             // 移動処理
-            final delta = details.localFocalPoint - _lastFocalPoint;
-            final scaledDelta = delta.scale(
+            final Offset delta = details.localFocalPoint - _lastFocalPoint;
+            final Offset scaledDelta = delta.scale(
               1 / _transformationController.value.getMaxScaleOnAxis(),
               1 / _transformationController.value.getMaxScaleOnAxis(),
             );
@@ -350,19 +352,19 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
   /// キャンバスの変形処理（パン/スケール）
   void _handleCanvasTransform(ScaleUpdateDetails details) {
     // スケールの変化量を計算
-    final scaleDiff = details.scale - _lastScale;
+    final double scaleDiff = details.scale - _lastScale;
     // 現在のスケールを更新
     _lastScale = details.scale;
 
     // ズームのための変換行列を作成
-    final scaleMatrix = Matrix4.identity()
+    final Matrix4 scaleMatrix = Matrix4.identity()
       ..translate(details.localFocalPoint.dx, details.localFocalPoint.dy)
       ..scale(1.0 + scaleDiff)
       ..translate(-details.localFocalPoint.dx, -details.localFocalPoint.dy);
 
     // パンのための変換行列を作成
-    final panDelta = details.localFocalPoint - _lastFocalPoint;
-    final panMatrix = Matrix4.identity()..translate(panDelta.dx, panDelta.dy);
+    final Offset panDelta = details.localFocalPoint - _lastFocalPoint;
+    final Matrix4 panMatrix = Matrix4.identity()..translate(panDelta.dx, panDelta.dy);
 
     // 変換行列を更新
     _transformationController.value = panMatrix * scaleMatrix * _transformationController.value;
