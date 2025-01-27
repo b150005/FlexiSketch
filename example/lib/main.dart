@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:developer' as developer;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flexi_sketch/flexi_sketch.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -37,7 +39,6 @@ class TestScreen extends StatefulWidget {
 
 class _TestScreenState extends State<TestScreen> {
   Map<String, dynamic>? _currentData;
-  final TextEditingController _jsonController = TextEditingController();
 
   final FlexiSketchController _controller = FlexiSketchController();
 
@@ -48,21 +49,12 @@ class _TestScreenState extends State<TestScreen> {
   void initState() {
     super.initState();
 
-    // テキストの変更を監視
-    _jsonController.addListener(() {
-      final isEmpty = _jsonController.text.isEmpty;
-      if (isEmpty != _isTextEmpty) {
-        setState(() {
-          _isTextEmpty = isEmpty;
-        });
-      }
-    });
+    _loadInitialImage();
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _jsonController.dispose();
     super.dispose();
   }
 
@@ -171,6 +163,14 @@ class _TestScreenState extends State<TestScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _loadInitialImage() async {
+    // Assets を ByteData として読み込む
+    final ByteData data = await rootBundle.load('pic_01_l.jpg');
+    final Uint8List imageData = data.buffer.asUint8List();
+
+    _controller.addImageFromBytes(imageData, addHistory: false);
   }
 
   /// 画像を選択してFlexiSketchに読み込む
