@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'dart:developer' as developer;
 
 import 'package:flexi_sketch/src/config/flexi_sketch_size_config.dart';
 import 'package:flexi_sketch/src/extensions/matrix4_extensions.dart';
@@ -614,6 +615,7 @@ class FlexiSketchController extends ChangeNotifier {
   Future<void> addImageFromBytes(
     Uint8List imageData, {
     FlexiSketchSizeConfig config = FlexiSketchSizeConfig.defaultConfig,
+    bool addHistory = true,
   }) async {
     try {
       // 画像オブジェクトの生成
@@ -624,12 +626,15 @@ class FlexiSketchController extends ChangeNotifier {
       );
 
       // 履歴に追加して画像を配置
-      _addToHistory(HistoryEntryType.paste);
+      if (addHistory) {
+        _addToHistory(HistoryEntryType.paste);
+      }
       _objects.add(imageObject);
 
       notifyListeners();
     } catch (e) {
       _notifyError('画像の追加中にエラーが発生しました: $e');
+      developer.log('データの読み込みに失敗しました: $e');
       rethrow;
     }
   }

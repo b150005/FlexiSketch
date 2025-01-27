@@ -58,6 +58,8 @@ class FlexiSketchDataHelper {
 
   /// 画像データから FlexiSketch の初期データを生成する
   ///
+  /// FIXME: ※ HTML Renderer で使用する場合は FlexiSketchController.addImageFromBytes()を使用してください。
+  ///
   /// [imageData] 画像のバイトデータ
   /// [width] キャンバスの幅（省略時は画像サイズを使用）
   /// [height] キャンバスの高さ（省略時は画像サイズを使用）
