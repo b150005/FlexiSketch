@@ -1,7 +1,5 @@
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
-
 import '../../objects/path_object.dart';
 import '../object_serializer.dart';
 
@@ -13,8 +11,8 @@ class PathObjectSerializer implements ObjectSerializer<PathObject> {
 
   @override
   Future<PathObject> fromJson(Map<String, dynamic> json) async {
-    final Map<String, dynamic> pathData = json['path'];
-    final List<dynamic> points = (pathData['points'])
+    final Map<String, dynamic> pathData = json['path'] as Map<String, dynamic>;
+    final List<dynamic> points = (pathData['points'] as List<dynamic>)
         .map((point) => Offset(
               (point['x'] as num).toDouble(),
               (point['y'] as num).toDouble(),

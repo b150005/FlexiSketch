@@ -69,14 +69,14 @@ class DrawableObjectSerializer extends ObjectSerializer<DrawableObject> {
   @override
   Future<DrawableObject> fromJson(Map<String, dynamic> json) async {
     // バージョンチェック
-    final int version = json['version'];
+    final int version = json['version'] as int;
     if (version != 1) {
       throw FormatException('Unsupported version: $version');
     }
 
-    final String type = json['type'];
-    final Map<String, dynamic> properties = json['properties'];
-    final Map<String, dynamic> data = json['data'];
+    final String type = json['type'] as String;
+    final Map<String, dynamic> properties = json['properties'] as Map<String, dynamic>;
+    final Map<String, dynamic> data = json['data'] as Map<String, dynamic>;
 
     // 型に応じたシリアライザを取得
     final ObjectSerializer<Serializable> specificSerializer = _getSerializerForType(type);

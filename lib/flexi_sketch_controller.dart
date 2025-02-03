@@ -791,14 +791,14 @@ class FlexiSketchController extends ChangeNotifier {
       _objects.clear();
 
       // キャンバスサイズの復元
-      final Map<String, dynamic> canvas = json['canvas'];
+      final Map<String, dynamic> canvas = json['canvas'] as Map<String, dynamic>;
       _canvasSize = Size(
         (canvas['width'] as num).toDouble(),
         (canvas['height'] as num).toDouble(),
       );
 
       // オブジェクトの復元
-      final List<dynamic> serializedObjects = json['objects'];
+      final List<dynamic> serializedObjects = json['objects'] as List<dynamic>;
       final List<DrawableObject> deserializedObjects = await Future.wait(
         serializedObjects.map((obj) => DrawableObjectSerializer.instance.fromJson(obj as Map<String, dynamic>)),
       );
@@ -811,6 +811,7 @@ class FlexiSketchController extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
+      developer.log('データの読み込みに失敗しました: $e');
       _notifyError('データの読み込みに失敗しました: $e');
       rethrow;
     }

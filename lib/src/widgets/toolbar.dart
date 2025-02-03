@@ -26,6 +26,18 @@ class Toolbar extends StatefulWidget {
   /// データとして保存する際のコールバック
   final SaveSketchAsData? onSaveAsData;
 
+  /// 戻る/進むボタンを非表示にするかどうか
+  final bool hideUndoRedo;
+
+  /// クリアボタンを非表示にするかどうか
+  final bool hideClear;
+
+  /// 画像アップロードボタンを非表示にするかどうか
+  final bool hideUpload;
+
+  /// 画像貼り付けボタンを非表示にするかどうか
+  final bool hideImagePaste;
+
   /// ツールバーウィジェットを作成します。
   ///
   /// [controller] は必須で、スケッチの状態管理を行います。
@@ -36,6 +48,10 @@ class Toolbar extends StatefulWidget {
     required this.controller,
     this.onSaveAsImage,
     this.onSaveAsData,
+    this.hideUndoRedo = false,
+    this.hideClear = false,
+    this.hideUpload = false,
+    this.hideImagePaste = false,
   });
 
   @override
@@ -74,7 +90,7 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        margin: EdgeInsets.all(8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
@@ -162,16 +178,18 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
           ]),
           if (widget.onSaveAsImage != null || widget.onSaveAsData != null) _buildVerticalDivider(),
           _buildToolGroup([
-            ToolButton(
-              icon: Icons.upload_file,
-              tooltip: '画像をアップロード',
-              onPressed: () => widget.controller.showImagePickerAndAddImage(context),
-            ),
-            ToolButton(
-              icon: Icons.paste,
-              tooltip: '画像を貼り付け',
-              onPressed: widget.controller.pasteImageFromClipboard,
-            ),
+            if (!widget.hideUpload)
+              ToolButton(
+                icon: Icons.upload_file,
+                tooltip: '画像をアップロード',
+                onPressed: () => widget.controller.showImagePickerAndAddImage(context),
+              ),
+            if (!widget.hideImagePaste)
+              ToolButton(
+                icon: Icons.paste,
+                tooltip: '画像を貼り付け',
+                onPressed: widget.controller.pasteImageFromClipboard,
+              ),
           ]),
         ],
       ),
@@ -250,26 +268,29 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildToolGroup([
-            ToolButton(
-              icon: Icons.undo,
-              tooltip: '元に戻す',
-              onPressed: widget.controller.canUndo ? widget.controller.undo : null,
-            ),
-            ToolButton(
-              icon: Icons.redo,
-              tooltip: 'やり直す',
-              onPressed: widget.controller.canRedo ? widget.controller.redo : null,
-            ),
-          ]),
-          _buildVerticalDivider(),
-          _buildToolGroup([
-            ToolButton(
-              icon: Icons.delete_outline,
-              tooltip: '全て消去',
-              onPressed: widget.controller.clear,
-            ),
-          ]),
+          if (!widget.hideUndoRedo)
+            _buildToolGroup([
+              ToolButton(
+                icon: Icons.undo,
+                tooltip: '元に戻す',
+                onPressed: widget.controller.canUndo ? widget.controller.undo : null,
+              ),
+              ToolButton(
+                icon: Icons.redo,
+                tooltip: 'やり直す',
+                onPressed: widget.controller.canRedo ? widget.controller.redo : null,
+              ),
+            ]),
+          if (!widget.hideClear) ...[
+            _buildVerticalDivider(),
+            _buildToolGroup([
+              ToolButton(
+                icon: Icons.delete_outline,
+                tooltip: '全て消去',
+                onPressed: widget.controller.clear,
+              ),
+            ]),
+          ]
         ],
       ),
     );
@@ -318,6 +339,9 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   ///
   /// [children] グループ化するウィジェットのリスト
   Widget _buildToolGroup(List<Widget> children) {
+    if (children.isEmpty) {
+      return Container();
+    }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: children.map((child) {

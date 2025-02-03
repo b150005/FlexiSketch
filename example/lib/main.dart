@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:developer' as developer;
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flexi_sketch/flexi_sketch.dart';
@@ -41,9 +40,6 @@ class _TestScreenState extends State<TestScreen> {
   Map<String, dynamic>? _currentData;
 
   final FlexiSketchController _controller = FlexiSketchController();
-
-  // テキストが空かどうかの状態を管理
-  bool _isTextEmpty = true;
 
   @override
   void initState() {

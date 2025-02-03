@@ -12,7 +12,7 @@ class ShapeObjectSerializer implements ObjectSerializer<ShapeObject> {
 
   @override
   Future<ShapeObject> fromJson(Map<String, dynamic> json) async {
-    final Map<String, dynamic> shapeData = json['shape'];
+    final Map<String, dynamic> shapeData = json['shape'] as Map<String, dynamic>;
 
     final Offset startPoint = Offset(
       (shapeData['startPoint']['x'] as num).toDouble(),
@@ -28,7 +28,7 @@ class ShapeObjectSerializer implements ObjectSerializer<ShapeObject> {
       (type) => type.toString() == shapeData['shapeType'],
     );
 
-    final Map<String, dynamic> paintData = shapeData['paint'];
+    final Map<String, dynamic> paintData = shapeData['paint'] as Map<String, dynamic>;
     final Paint paint = Paint()
       ..color = Color(paintData['color'] as int)
       ..strokeWidth = (paintData['strokeWidth'] as num).toDouble()

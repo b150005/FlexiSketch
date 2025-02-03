@@ -32,6 +32,18 @@ class FlexiSketchWidget extends StatefulWidget {
   /// エラー発生時のコールバック
   final void Function(String message)? onError;
 
+  /// ツールバーの戻る/進むボタンを非表示にするかどうか
+  final bool hideUndoRedo;
+
+  /// ツールバーのクリアボタンを非表示にするかどうか
+  final bool hideClear;
+
+  /// ツールバーの画像アップロードボタンを非表示にするかどうか
+  final bool hideUpload;
+
+  /// ツールバーの画像貼り付けボタンを非表示にするかどうか
+  final bool hideImagePaste;
+
   /// FlexiSketchウィジェットを作成します。
   ///
   /// [controller] は必須で、スケッチの状態管理を行います。
@@ -42,6 +54,10 @@ class FlexiSketchWidget extends StatefulWidget {
     this.onSaveAsData,
     this.data,
     this.onError,
+    this.hideUndoRedo = false,
+    this.hideClear = false,
+    this.hideUpload = false,
+    this.hideImagePaste = false,
   });
 
   @override
@@ -184,6 +200,10 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> {
                                 }
                               }
                             : null,
+                        hideUndoRedo: widget.hideUndoRedo,
+                        hideClear: widget.hideClear,
+                        hideUpload: widget.hideUpload,
+                        hideImagePaste: widget.hideImagePaste,
                       ),
                     ),
                   );
