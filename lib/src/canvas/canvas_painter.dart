@@ -347,10 +347,36 @@ class CanvasPainter extends CustomPainter {
 
     final Offset rotationHandle = Offset(bounds.center.dx, bounds.top - 20);
 
+    /// ハンドルのサイズ(Iconsを表示するので大きめに設定)
+    final double rotateHandleSize = 24;
+
+    // ベースとなる円を描画
     canvas
-      ..drawCircle(rotationHandle, handleSize / 2, handlePaint)
-      ..drawCircle(rotationHandle, handleSize / 2, handleBorderPaint)
-      ..drawLine(Offset(bounds.center.dx, bounds.top), rotationHandle, handleBorderPaint);
+      ..drawCircle(rotationHandle, rotateHandleSize / 2, handlePaint)
+      ..drawCircle(rotationHandle, rotateHandleSize / 2, handleBorderPaint);
+
+    // 回転アイコンを描画
+    final IconData rotateIcon = Icons.rotate_right;
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(rotateIcon.codePoint),
+        style: TextStyle(
+          fontSize: rotateHandleSize * 0.8,
+          fontFamily: rotateIcon.fontFamily,
+          color: handleBorderColor,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        rotationHandle.dx - textPainter.width / 2,
+        rotationHandle.dy - textPainter.height / 2,
+      ),
+    );
   }
 
   /// 削除ハンドルを描画する
@@ -369,9 +395,35 @@ class CanvasPainter extends CustomPainter {
 
     final Offset deleteHandle = Offset(bounds.center.dx, bounds.bottom + 20);
 
+    /// ハンドルのサイズ(Iconsを表示するので大きめに設定)
+    final double deleteHandleSize = 24;
+
+    // ベースとなる円を描画
     canvas
-      ..drawCircle(deleteHandle, handleSize / 2, handlePaint)
-      ..drawCircle(deleteHandle, handleSize / 2, handleBorderPaint)
-      ..drawLine(Offset(bounds.center.dx, bounds.bottom), deleteHandle, handleBorderPaint);
+      ..drawCircle(deleteHandle, deleteHandleSize / 2, handlePaint)
+      ..drawCircle(deleteHandle, deleteHandleSize / 2, handleBorderPaint);
+
+    // 削除アイコンを描画
+    final IconData deleteIcon = Icons.delete_outline;
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(deleteIcon.codePoint),
+        style: TextStyle(
+          fontSize: deleteHandleSize * 0.8,
+          fontFamily: deleteIcon.fontFamily,
+          color: Colors.white,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        deleteHandle.dx - textPainter.width / 2,
+        deleteHandle.dy - textPainter.height / 2,
+      ),
+    );
   }
 }
