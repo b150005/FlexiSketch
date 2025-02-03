@@ -309,34 +309,34 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   /// 定義済みの色から選択できるパレットを提供する
   /// ToolButtonと同じサイズ・デザインで統一感のある表示を行う
   Widget _buildColorPalette() {
-    return SizedBox(
-      height: 36,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _predefinedColors.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final color = _predefinedColors[index];
-          return InkWell(
-            onTap: () {
-              widget.controller.setColor(color);
-              setState(() => _isColorPickerExpanded = false);
-            },
-            borderRadius: BorderRadius.circular(6),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  width: 1,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: _predefinedColors.map((color) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: InkWell(
+              onTap: () {
+                widget.controller.setColor(color);
+                setState(() => _isColorPickerExpanded = false);
+              },
+              borderRadius: BorderRadius.circular(6),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
                 ),
               ),
             ),
           );
-        },
+        }).toList(),
       ),
     );
   }
