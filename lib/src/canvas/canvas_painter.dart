@@ -91,7 +91,7 @@ class CanvasPainter extends CustomPainter {
 
         // 選択状態のオブジェクトは選択時 UI (枠線・ハンドル)を描画
         if (object.isSelected) {
-          _drawSelectionUI(canvas, object);
+          _drawSelectionUI(canvas, object, showDeleteHandle: !controller.preserveImages);
         }
       }
     }
@@ -231,7 +231,11 @@ class CanvasPainter extends CustomPainter {
   ///
   /// [canvas] 描画対象のキャンバス
   /// [object] 選択されたオブジェクト
-  void _drawSelectionUI(Canvas canvas, DrawableObject object) {
+  void _drawSelectionUI(
+    Canvas canvas,
+    DrawableObject object, {
+    bool showDeleteHandle = true,
+  }) {
     final Rect bounds = object.bounds;
 
     // 選択枠を描画
@@ -240,7 +244,7 @@ class CanvasPainter extends CustomPainter {
     // 各種ハンドルを描画
     _drawCornerHandles(canvas, bounds); // 四隅の拡大・縮小ハンドル
     _drawRotationHandle(canvas, bounds); // 回転ハンドル
-    _drawDeleteHandle(canvas, bounds); // 削除ハンドル
+    if (showDeleteHandle) _drawDeleteHandle(canvas, bounds); // 削除ハンドル
   }
 
   /// 選択枠を描画する
@@ -345,15 +349,17 @@ class CanvasPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = handleBorderWidth;
 
-    final Offset rotationHandle = Offset(bounds.center.dx, bounds.top - 20);
+    final Offset rotateHandle = Offset(bounds.center.dx, bounds.top - 20);
+    final Offset rotateHandleBottom = Offset(rotateHandle.dx, rotateHandle.dy + 12);
 
     /// ハンドルのサイズ(Iconsを表示するので大きめに設定)
     final double rotateHandleSize = 24;
 
     // ベースとなる円を描画
     canvas
-      ..drawCircle(rotationHandle, rotateHandleSize / 2, handlePaint)
-      ..drawCircle(rotationHandle, rotateHandleSize / 2, handleBorderPaint);
+      ..drawCircle(rotateHandle, rotateHandleSize / 2, handlePaint)
+      ..drawCircle(rotateHandle, rotateHandleSize / 2, handleBorderPaint)
+      ..drawLine(bounds.topCenter, rotateHandleBottom, handleBorderPaint);
 
     // 回転アイコンを描画
     final IconData rotateIcon = Icons.rotate_right;
@@ -373,8 +379,8 @@ class CanvasPainter extends CustomPainter {
     textPainter.paint(
       canvas,
       Offset(
-        rotationHandle.dx - textPainter.width / 2,
-        rotationHandle.dy - textPainter.height / 2,
+        rotateHandle.dx - textPainter.width / 2,
+        rotateHandle.dy - textPainter.height / 2,
       ),
     );
   }
@@ -394,6 +400,7 @@ class CanvasPainter extends CustomPainter {
       ..strokeWidth = handleBorderWidth;
 
     final Offset deleteHandle = Offset(bounds.center.dx, bounds.bottom + 20);
+    final Offset deleteHandleTop = Offset(deleteHandle.dx, deleteHandle.dy - 12);
 
     /// ハンドルのサイズ(Iconsを表示するので大きめに設定)
     final double deleteHandleSize = 24;
@@ -401,7 +408,8 @@ class CanvasPainter extends CustomPainter {
     // ベースとなる円を描画
     canvas
       ..drawCircle(deleteHandle, deleteHandleSize / 2, handlePaint)
-      ..drawCircle(deleteHandle, deleteHandleSize / 2, handleBorderPaint);
+      ..drawCircle(deleteHandle, deleteHandleSize / 2, handleBorderPaint)
+      ..drawLine(bounds.bottomCenter, deleteHandleTop, handleBorderPaint);
 
     // 削除アイコンを描画
     final IconData deleteIcon = Icons.delete_outline;

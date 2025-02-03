@@ -393,6 +393,7 @@ class FlexiSketchController extends ChangeNotifier {
   /// 選択中のオブジェクトを削除する
   void deleteSelectedObject() {
     if (_selectedObject != null) {
+      if (_selectedObject is ImageObject && preserveImages) return;
       _addToHistory(HistoryEntryType.delete);
       _objects.remove(_selectedObject);
       _selectedObject = null;
