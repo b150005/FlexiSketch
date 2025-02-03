@@ -38,6 +38,9 @@ class Toolbar extends StatefulWidget {
   /// 画像貼り付けボタンを非表示にするかどうか
   final bool hideImagePaste;
 
+  /// 図形描画ボタンを非表示にするかどうか
+  final bool hideShapeDrawing;
+
   /// ツールバーウィジェットを作成します。
   ///
   /// [controller] は必須で、スケッチの状態管理を行います。
@@ -52,6 +55,7 @@ class Toolbar extends StatefulWidget {
     this.hideClear = false,
     this.hideUpload = false,
     this.hideImagePaste = false,
+    this.hideShapeDrawing = false,
   });
 
   @override
@@ -176,7 +180,7 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                 tooltip: 'データとして保存',
               ),
           ]),
-          if (widget.onSaveAsImage != null || widget.onSaveAsData != null) _buildVerticalDivider(),
+          if (!widget.hideUpload || !widget.hideImagePaste) _buildVerticalDivider(),
           _buildToolGroup([
             if (!widget.hideUpload)
               ToolButton(
@@ -219,29 +223,31 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
               onPressed: () => widget.controller.toggleTool(EraserTool()),
             ),
           ]),
-          _buildVerticalDivider(),
-          _buildToolGroup([
-            ToolButton(
-              icon: Icons.crop_square,
-              tooltip: '四角形',
-              isSelected: widget.controller.isSpecificToolSelected(
-                ShapeTool(shapeType: ShapeType.rectangle),
+          if (!widget.hideShapeDrawing) ...[
+            _buildVerticalDivider(),
+            _buildToolGroup([
+              ToolButton(
+                icon: Icons.crop_square,
+                tooltip: '四角形',
+                isSelected: widget.controller.isSpecificToolSelected(
+                  ShapeTool(shapeType: ShapeType.rectangle),
+                ),
+                onPressed: () => widget.controller.toggleTool(
+                  ShapeTool(shapeType: ShapeType.rectangle),
+                ),
               ),
-              onPressed: () => widget.controller.toggleTool(
-                ShapeTool(shapeType: ShapeType.rectangle),
+              ToolButton(
+                icon: Icons.circle_outlined,
+                tooltip: '円',
+                isSelected: widget.controller.isSpecificToolSelected(
+                  ShapeTool(shapeType: ShapeType.circle),
+                ),
+                onPressed: () => widget.controller.toggleTool(
+                  ShapeTool(shapeType: ShapeType.circle),
+                ),
               ),
-            ),
-            ToolButton(
-              icon: Icons.circle_outlined,
-              tooltip: '円',
-              isSelected: widget.controller.isSpecificToolSelected(
-                ShapeTool(shapeType: ShapeType.circle),
-              ),
-              onPressed: () => widget.controller.toggleTool(
-                ShapeTool(shapeType: ShapeType.circle),
-              ),
-            ),
-          ]),
+            ]),
+          ],
           _buildVerticalDivider(),
           _buildToolGroup([
             ColorButton(

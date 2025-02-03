@@ -44,6 +44,9 @@ class FlexiSketchWidget extends StatefulWidget {
   /// ツールバーの画像貼り付けボタンを非表示にするかどうか
   final bool hideImagePaste;
 
+  /// ツールバーの図形描画ボタンを非表示にするかどうか
+  final bool hideShapeDrawing;
+
   /// FlexiSketchウィジェットを作成します。
   ///
   /// [controller] は必須で、スケッチの状態管理を行います。
@@ -58,6 +61,7 @@ class FlexiSketchWidget extends StatefulWidget {
     this.hideClear = false,
     this.hideUpload = false,
     this.hideImagePaste = false,
+    this.hideShapeDrawing = false,
   });
 
   @override
@@ -204,6 +208,7 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> {
                         hideClear: widget.hideClear,
                         hideUpload: widget.hideUpload,
                         hideImagePaste: widget.hideImagePaste,
+                        hideShapeDrawing: widget.hideShapeDrawing,
                       ),
                     ),
                   );
