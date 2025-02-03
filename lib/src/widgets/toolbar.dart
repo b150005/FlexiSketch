@@ -180,7 +180,9 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
                 tooltip: 'データとして保存',
               ),
           ]),
-          if (!widget.hideUpload || !widget.hideImagePaste) _buildVerticalDivider(),
+          if ((widget.onSaveAsImage != null || widget.onSaveAsData != null) &&
+              (!widget.hideUpload || !widget.hideImagePaste))
+            _buildVerticalDivider(),
           _buildToolGroup([
             if (!widget.hideUpload)
               ToolButton(
