@@ -24,6 +24,18 @@ import 'src/utils/flexi_sketch_data_helper.dart';
 import 'src/widgets/icon_list_tile.dart';
 
 class FlexiSketchController extends ChangeNotifier {
+  /// 画像オブジェクトを消しゴムの対象外とするかどうか
+  ///
+  /// `true` の場合、 `ImageObject` は消しゴムによって削除されません。
+  final bool preserveImages;
+
+  /// コンストラクタ
+  ///
+  /// [preserveImages] 画像オブジェクトを消しゴムの対象外とするかどうか（デフォルト: `false`)
+  FlexiSketchController({
+    this.preserveImages = false,
+  });
+
   /// 選択中の描画ツール
   DrawingTool? _currentTool;
   DrawingTool? get currentTool => _currentTool;
@@ -281,13 +293,16 @@ class FlexiSketchController extends ChangeNotifier {
   /// 消しゴムを実行する
   void continueErasing(Offset point) {
     if (_currentPath != null) {
-      final localPoint = _currentPath!.globalToLocal(point);
+      final Offset localPoint = _currentPath!.globalToLocal(point);
       _currentPath!.addPoint(localPoint);
 
       // 変換済みのパスを使用して交差判定
-      if (_objects.any((obj) => obj.intersects(_currentPath!.getTransformedPath()))) {
+      if (_objects.any((obj) =>
+          // preserveImages が true の場合、 ImageObject は判定から除外
+          (!preserveImages || obj is! ImageObject) && obj.intersects(_currentPath!.getTransformedPath()))) {
         _addToHistory(HistoryEntryType.erase);
-        _objects.removeWhere((obj) => obj.intersects(_currentPath!.getTransformedPath()));
+        _objects.removeWhere(
+            (obj) => (!preserveImages || obj is! ImageObject) && obj.intersects(_currentPath!.getTransformedPath()));
       }
       notifyListeners();
     }
