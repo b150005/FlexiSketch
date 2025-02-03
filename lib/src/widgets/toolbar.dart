@@ -254,8 +254,9 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
           _buildToolGroup([
             ColorButton(
               color: widget.controller.currentColor,
-              isExpanded: _isColorPickerExpanded,
-              onPressed: _toggleColorPicker,
+              onColorChanged: (color) {
+                widget.controller.setColor(color);
+              },
             ),
             StrokeWidthButton(
               strokeWidth: widget.controller.currentStrokeWidth,
@@ -379,13 +380,6 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         ),
       ),
     );
-  }
-
-  /// カラーピッカーの表示状態を切り替える
-  void _toggleColorPicker() {
-    setState(() {
-      _isColorPickerExpanded = !_isColorPickerExpanded;
-    });
   }
 
   /// コントローラの状態変更をUIに反映する
