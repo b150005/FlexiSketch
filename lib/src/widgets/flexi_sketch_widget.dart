@@ -274,7 +274,7 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> {
     final ScaffoldState? scaffold = Scaffold.maybeOf(context);
     if (scaffold == null) return 0;
 
-    final AppBar? appBar = scaffold.widget.appBar as AppBar?;
+    final PreferredSizeWidget? appBar = scaffold.widget.appBar;
     return appBar?.preferredSize.height ?? 0;
   }
 
