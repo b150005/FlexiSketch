@@ -7,6 +7,7 @@ import '../handlers/save_handler.dart';
 import '../tools/eraser_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/shape_tool.dart';
+import '../tools/text_tool.dart';
 import 'color_button.dart';
 import 'stroke_width_button.dart';
 import 'tool_button.dart';
@@ -225,6 +226,13 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
               onPressed: () => widget.controller.toggleTool(EraserTool()),
             ),
           ]),
+          _buildVerticalDivider(),
+          ToolButton(
+            icon: Icons.text_fields,
+            tooltip: 'テキスト',
+            isSelected: widget.controller.isSpecificToolSelected(const TextTool()),
+            onPressed: () => widget.controller.toggleTool(const TextTool()),
+          ),
           if (!widget.hideShapeDrawing) ...[
             _buildVerticalDivider(),
             _buildToolGroup([

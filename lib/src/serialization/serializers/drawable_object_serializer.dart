@@ -5,6 +5,7 @@ import '../object_serializer.dart';
 import 'image_object_serializer.dart';
 import 'path_object_serializer.dart';
 import 'shape_object_serializer.dart';
+import 'text_object_serializer.dart';
 
 /// DrawableObjectのシリアライズを担当するクラス
 ///
@@ -111,6 +112,8 @@ class DrawableObjectSerializer extends ObjectSerializer<DrawableObject> {
         return ShapeObjectSerializer.instance;
       case 'image':
         return ImageObjectSerializer.instance;
+      case 'text':
+        return TextObjectSerializer.instance;
       default:
         throw FormatException('Unknown object type: $type');
     }

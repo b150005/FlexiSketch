@@ -15,6 +15,7 @@ import 'src/objects/drawable_object.dart';
 import 'src/objects/image_object.dart';
 import 'src/objects/path_object.dart';
 import 'src/objects/shape_object.dart';
+import 'src/objects/text_object.dart';
 import 'src/serialization/serializers/drawable_object_serializer.dart';
 import 'src/services/clipboard_service.dart';
 import 'src/storage/sketch_data.dart';
@@ -22,8 +23,12 @@ import 'src/tools/drawing_tool.dart';
 import 'src/tools/shape_tool.dart';
 import 'src/utils/flexi_sketch_data_helper.dart';
 import 'src/widgets/icon_list_tile.dart';
+import 'src/widgets/text_input_dialog.dart';
 
 class FlexiSketchController extends ChangeNotifier {
+  /// コンテキスト
+  final BuildContext? context;
+
   /// 画像オブジェクトを消しゴムの対象外とするかどうか
   ///
   /// `true` の場合、 `ImageObject` は消しゴムによって削除されません。
@@ -33,6 +38,7 @@ class FlexiSketchController extends ChangeNotifier {
   ///
   /// [preserveImages] 画像オブジェクトを消しゴムの対象外とするかどうか（デフォルト: `false`)
   FlexiSketchController({
+    this.context,
     this.preserveImages = false,
   });
 
@@ -349,6 +355,34 @@ class FlexiSketchController extends ChangeNotifier {
         _objects.add(_currentShape!);
       }
       _currentShape = null;
+      notifyListeners();
+    }
+  }
+
+  /// テキスト入力を開始する
+  void startText(Offset point) async {
+    if (context == null) return;
+    // テキスト入力ダイアログを表示
+    final String? text = await showDialog<String>(
+      context: context!,
+      builder: (context) => const TextInputDialog(),
+    );
+
+    if (text != null && text.isNotEmpty) {
+      final paint = Paint()
+        ..color = _currentColor
+        ..strokeWidth = _currentStrokeWidth
+        ..style = PaintingStyle.fill;
+
+      final textObject = TextObject(
+        text: text,
+        globalCenter: point,
+        paint: paint,
+        fontSize: _currentStrokeWidth * 10, // フォントサイズは線の太さに比例
+      );
+
+      _addToHistory(HistoryEntryType.draw);
+      _objects.add(textObject);
       notifyListeners();
     }
   }
