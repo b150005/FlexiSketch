@@ -10,10 +10,10 @@ import 'package:share_plus/share_plus.dart';
 import 'file_handler.dart';
 
 /// モバイル環境でのファイル操作を実装するクラス
-class FileHandlerMobile implements FileHandler {
+class FileHandlerImpl implements FileHandler {
   final BuildContext context;
 
-  FileHandlerMobile(this.context);
+  FileHandlerImpl(this.context);
 
   @override
   Future<void> saveJsonFile(String jsonString, String fileName) async {
