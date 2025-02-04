@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
@@ -207,7 +208,7 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   ///
   /// ペン、消しゴム、図形描画、色の選択、線の太さの設定など、描画に関連するツールボタンを提供する
   Widget _buildDrawingTools() {
-    return SingleChildScrollView(
+    final Widget internal = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -274,6 +275,15 @@ class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         ],
       ),
     );
+
+    if (kIsWeb) {
+      return internal;
+    } else {
+      return SizedBox(
+        width: MediaQuery.of(context).size.width * 0.8,
+        child: internal,
+      );
+    }
   }
 
   /// 編集ツールグループを構築する
