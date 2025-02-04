@@ -210,9 +210,8 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
       // ハンドルの判定
       _activeHandle = _getHandleAtPoint(details.localFocalPoint);
 
-      if (_activeHandle == null && widget.controller.hitTest(localPosition) == null) {
+      if (_activeHandle == null) {
         widget.controller.clearSelection();
-      } else if (!widget.controller.hasSelection) {
         // オブジェクトの選択を試行
         widget.controller.selectObject(localPosition);
       }
