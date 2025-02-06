@@ -213,7 +213,7 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
       if (_activeHandle == null) {
         widget.controller.clearSelection();
         // オブジェクトの選択を試行
-        widget.controller.selectObject(localPosition);
+        widget.controller.selectObjectAtPoint(localPosition);
       }
 
       // 削除ハンドル上の場合はオブジェクトを削除

@@ -382,7 +382,7 @@ class FlexiSketchController extends ChangeNotifier {
       );
 
       // テキスト入力時は TextObject を選択状態にする
-      textObject.isSelected = true;
+      selectObject(textObject);
 
       _addToHistory(HistoryEntryType.draw);
       _objects.add(textObject);
@@ -407,7 +407,7 @@ class FlexiSketchController extends ChangeNotifier {
   }
 
   /// オブジェクトを選択する
-  void selectObject(Offset point) {
+  void selectObjectAtPoint(Offset point) {
     // 選択済みオブジェクトがあればその選択状態を解除
     clearSelection();
 
@@ -415,6 +415,17 @@ class FlexiSketchController extends ChangeNotifier {
     if (_currentTool != null) return;
 
     _selectedObject = hitTest(point);
+    _selectedObject?.isSelected = true;
+
+    notifyListeners();
+  }
+
+  /// オブジェクトを選択する
+  void selectObject(DrawableObject object) {
+    // 選択済みオブジェクトがあればその選択状態を解除
+    clearSelection();
+
+    _selectedObject = object;
     _selectedObject?.isSelected = true;
 
     notifyListeners();
