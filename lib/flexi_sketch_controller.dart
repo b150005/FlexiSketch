@@ -381,9 +381,14 @@ class FlexiSketchController extends ChangeNotifier {
         fontSize: _currentStrokeWidth * 10, // フォントサイズは線の太さに比例
       );
 
+      // テキスト入力時は TextObject を選択状態にする
+      textObject.isSelected = true;
+
       _addToHistory(HistoryEntryType.draw);
       _objects.add(textObject);
-      notifyListeners();
+
+      // テキスト入力後はテキストツールの選択を解除する(内部で notifyListeners() が呼び出される)
+      setTool(null);
     }
   }
 
