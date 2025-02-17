@@ -121,7 +121,7 @@ class _TestScreenState extends State<TestScreen> {
 
   Future<void> _loadInitialImage() async {
     // Assets を ByteData として読み込む
-    final ByteData data = await rootBundle.load('pic_01_l.jpg');
+    final ByteData data = await rootBundle.load('assets/pic_01_l.jpg');
     final Uint8List imageData = data.buffer.asUint8List();
 
     _controller.addImageFromBytes(imageData, addHistory: false);
