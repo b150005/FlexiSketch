@@ -133,6 +133,12 @@ class FlexiSketchController extends ChangeNotifier {
 
   /// 描画色を設定する
   void setColor(Color color) {
+    if (hasSelection) {
+      // 選択中のオブジェクトがある場合は、そのオブジェクトの色を変更
+      _updateSelectedObjectColor(color);
+    }
+
+    // 現在の描画色を更新（新規オブジェクト用）
     _currentColor = color;
     notifyListeners();
   }
@@ -449,6 +455,27 @@ class FlexiSketchController extends ChangeNotifier {
       _selectedObject = null;
       notifyListeners();
     }
+  }
+
+  /// 選択中のオブジェクトの色を変更する
+  void _updateSelectedObjectColor(Color color) {
+    if (_selectedObject == null) return;
+
+    // 履歴に追加
+    _addToHistory(HistoryEntryType.transform);
+
+    if (_selectedObject is PathObject) {
+      final pathObj = _selectedObject as PathObject;
+      pathObj.paint.color = color;
+    } else if (_selectedObject is ShapeObject) {
+      final shapeObj = _selectedObject as ShapeObject;
+      shapeObj.paint.color = color;
+    } else if (_selectedObject is TextObject) {
+      final textObj = _selectedObject as TextObject;
+      textObj.paint.color = color;
+    }
+
+    notifyListeners();
   }
 
   /// 変形操作を開始する
