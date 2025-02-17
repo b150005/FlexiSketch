@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
 import '../objects/drawable_object.dart';
+import '../objects/text_object.dart';
 import 'canvas_painter.dart';
 
 /// 無限キャンバスウィジェット
@@ -137,6 +138,7 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
       case _HandleType.rotate:
         return SystemMouseCursors.alias;
       case _HandleType.delete:
+      case _HandleType.edit:
         return SystemMouseCursors.click;
       default:
         if (_isDragging) {
@@ -168,6 +170,11 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
       _HandleType.rotate: Offset(bounds.center.dx, bounds.top - 20),
       _HandleType.delete: Offset(bounds.center.dx, bounds.bottom + 20),
     };
+
+    // TextObjectの場合は編集ハンドルを追加
+    if (selectedObject is TextObject) {
+      handlePositions[_HandleType.edit] = Offset(bounds.right + 20, bounds.center.dy);
+    }
 
     // 変換行列を適用した座標でハンドルを判定
     for (final entry in handlePositions.entries) {
@@ -216,14 +223,24 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
         widget.controller.selectObjectAtPoint(localPosition);
       }
 
-      // 削除ハンドル上の場合はオブジェクトを削除
-      if (_activeHandle == _HandleType.delete) {
-        widget.controller.deleteSelectedObject();
-      } else {
-        // オブジェクト上の場合は変形操作の開始を通知
-        if (widget.controller.hasSelection) {
-          widget.controller.beginTransform();
-        }
+      // ハンドルに応じた処理
+      switch (_activeHandle) {
+        case _HandleType.delete:
+          // 削除ハンドル上の場合はオブジェクトを削除
+          widget.controller.deleteSelectedObject();
+          break;
+        case _HandleType.edit:
+          // 編集ハンドル上かつ選択されたオブジェクトが TextObject の場合は編集ダイアログを表示
+          if (widget.controller.selectedObject is TextObject) {
+            widget.controller.editText(widget.controller.selectedObject as TextObject);
+          }
+          break;
+        default:
+          // オブジェクト上の場合は変形操作の開始を通知
+          if (widget.controller.hasSelection) {
+            widget.controller.beginTransform();
+          }
+          break;
       }
     }
   }
@@ -389,4 +406,7 @@ enum _HandleType {
 
   /// 削除ハンドル
   delete,
+
+  /// 編集ハンドル
+  edit,
 }

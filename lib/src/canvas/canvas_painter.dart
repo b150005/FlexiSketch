@@ -3,6 +3,7 @@ import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import '../../flexi_sketch_controller.dart';
 import '../objects/drawable_object.dart';
+import '../objects/text_object.dart';
 
 /// CanvasPainterクラスは、キャンバス上に描画を行うためのカスタムペインターです。
 ///
@@ -29,6 +30,9 @@ class CanvasPainter extends CustomPainter {
 
   /// 削除ハンドルの色
   static const Color deleteHandleColor = Colors.red;
+
+  /// 編集ハンドルの色
+  static const Color editHandleColor = Colors.lightBlue;
 
   /// 選択枠の線幅
   static const double selectionBorderWidth = 2.0;
@@ -245,6 +249,11 @@ class CanvasPainter extends CustomPainter {
     _drawCornerHandles(canvas, bounds); // 四隅の拡大・縮小ハンドル
     _drawRotationHandle(canvas, bounds); // 回転ハンドル
     if (showDeleteHandle) _drawDeleteHandle(canvas, bounds); // 削除ハンドル
+
+    // TextObjectの場合は編集ハンドルを追加
+    if (object is TextObject) {
+      _drawEditHandle(canvas, bounds);
+    }
   }
 
   /// 選択枠を描画する
@@ -431,6 +440,57 @@ class CanvasPainter extends CustomPainter {
       Offset(
         deleteHandle.dx - textPainter.width / 2,
         deleteHandle.dy - textPainter.height / 2,
+      ),
+    );
+  }
+
+  /// テキスト編集ハンドルを描画する
+  ///
+  /// [canvas] 描画対象のキャンバス
+  /// [bounds] オブジェクトのバウンディングボックス
+  void _drawEditHandle(Canvas canvas, Rect bounds) {
+    final Paint handlePaint = Paint()
+      ..color = handleFillColor
+      ..style = PaintingStyle.fill;
+
+    final Paint handleBorderPaint = Paint()
+      ..color = editHandleColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = handleBorderWidth;
+
+    // 編集ハンドルの位置（右中央に配置）
+    final Offset editHandle = Offset(bounds.right + 20, bounds.center.dy);
+    final Offset editHandleLeft = Offset(editHandle.dx - 12, editHandle.dy);
+
+    /// ハンドルのサイズ(Iconsを表示するので大きめに設定)
+    final double editHandleSize = 24;
+
+    // ベースとなる円を描画
+    canvas
+      ..drawCircle(editHandle, editHandleSize / 2, handlePaint)
+      ..drawCircle(editHandle, editHandleSize / 2, handleBorderPaint)
+      ..drawLine(bounds.centerRight, editHandleLeft, handleBorderPaint);
+
+    // 編集アイコンを描画
+    final IconData editIcon = Icons.edit;
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(editIcon.codePoint),
+        style: TextStyle(
+          fontSize: editHandleSize * 0.8,
+          fontFamily: editIcon.fontFamily,
+          color: editHandleColor,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        editHandle.dx - textPainter.width / 2,
+        editHandle.dy - textPainter.height / 2,
       ),
     );
   }

@@ -1,14 +1,35 @@
 import 'package:flutter/material.dart';
 
 class TextInputDialog extends StatefulWidget {
-  const TextInputDialog({super.key});
+  final String? initialText;
+  final String? submitLabel;
+
+  const TextInputDialog({
+    super.key,
+    this.initialText,
+    this.submitLabel,
+  });
 
   @override
   State<TextInputDialog> createState() => _TextInputDialogState();
 }
 
 class _TextInputDialogState extends State<TextInputDialog> {
-  final _controller = TextEditingController();
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialText);
+
+    // テキストを全選択状態にする
+    if (widget.initialText != null) {
+      _controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: widget.initialText!.length,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +50,7 @@ class _TextInputDialogState extends State<TextInputDialog> {
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('追加'),
+          child: Text(widget.submitLabel ?? '追加'),
         ),
       ],
     );

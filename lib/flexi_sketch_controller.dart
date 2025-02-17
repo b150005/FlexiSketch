@@ -398,6 +398,30 @@ class FlexiSketchController extends ChangeNotifier {
     }
   }
 
+  /// テキストオブジェクトを編集する
+  Future<void> editText(TextObject textObject) async {
+    if (context == null) return;
+
+    // テキスト入力ダイアログを表示
+    final String? newText = await showDialog<String>(
+      context: context!,
+      builder: (context) => TextInputDialog(
+        initialText: textObject.text,
+        submitLabel: '更新',
+      ),
+    );
+
+    if (newText != null && newText.isNotEmpty && newText != textObject.text) {
+      // 変更前の状態を履歴に追加
+      _addToHistory(HistoryEntryType.transform);
+
+      // テキストを更新
+      textObject.text = newText;
+
+      notifyListeners();
+    }
+  }
+
   /// 指定された点にある描画オブジェクトを取得する
   ///
   /// [point] 判定する点の座標
