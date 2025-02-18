@@ -62,7 +62,7 @@ class FlexiSketchController extends ChangeNotifier {
   Color get currentColor => _currentColor;
 
   /// 線の太さ
-  double _currentStrokeWidth = 2.0;
+  double _currentStrokeWidth = 8.0;
   double get currentStrokeWidth => _currentStrokeWidth;
 
   /// 描画中のパス(線)
