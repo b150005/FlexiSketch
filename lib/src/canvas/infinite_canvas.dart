@@ -52,6 +52,9 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
   /// ハンドルの判定範囲(px)
   static const double _handleHitArea = 20.0;
 
+  /// 画像の初期ズームが適用されたかどうか
+  bool _initialZoomApplied = false;
+
   @override
   void initState() {
     super.initState();
@@ -100,9 +103,12 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
   /// コントローラの状態変更時に呼び出されるコールバック
   void _onControllerChanged() {
     // コントローラのオブジェクトリストが更新され、単一の画像オブジェクトのみが含まれている場合、
-    // 自動的にズームを適用
-    if (widget.controller.objects.length == 1 && widget.controller.objects.first is ImageObject) {
+    // かつ初期ズームがまだ適用されていない場合のみ自動的にズームを適用
+    if (!_initialZoomApplied &&
+        widget.controller.objects.length == 1 &&
+        widget.controller.objects.first is ImageObject) {
       setInitialZoomForImage(widget.controller.objects.first as ImageObject);
+      _initialZoomApplied = true;
     }
     setState(() {});
   }
