@@ -94,8 +94,8 @@ class _StrokeWidthButtonState extends State<StrokeWidthButton> {
 
   /// オーバーレイを表示する
   void _showOverlay() {
-    final OverlayEntry overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(overlayEntry);
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
   }
 
   /// オーバーレイを削除する
