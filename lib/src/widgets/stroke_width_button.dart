@@ -137,54 +137,51 @@ class _StrokeWidthButtonState extends State<StrokeWidthButton> {
               Positioned(
                 left: buttonPosition.dx + dx,
                 top: buttonPosition.dy - overlayHeight - padding,
-                child: GestureDetector(
-                  onTap: () {}, // バブリングを防止
-                  child: Material(
-                    elevation: 8,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.grey.withValues(alpha: 0.2),
-                          width: 1,
+                child: Material(
+                  elevation: 8,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.grey.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    width: overlayWidth,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.line_weight, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              _currentWidth.round().toString(),
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
                         ),
-                      ),
-                      width: overlayWidth,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.line_weight, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                _currentWidth.round().toString(),
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                          StatefulBuilder(
-                            builder: (context, setStateSlider) {
-                              return Slider(
-                                value: _currentWidth,
-                                min: 1,
-                                max: 20,
-                                divisions: 19,
-                                label: _currentWidth.round().toString(),
-                                onChanged: (value) {
-                                  setStateSlider(() {
-                                    _currentWidth = value;
-                                  });
-                                  widget.onChanged(value);
-                                },
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+                        StatefulBuilder(
+                          builder: (context, setStateSlider) {
+                            return Slider(
+                              value: _currentWidth,
+                              min: 1,
+                              max: 20,
+                              divisions: 19,
+                              label: _currentWidth.round().toString(),
+                              onChanged: (value) {
+                                setStateSlider(() {
+                                  _currentWidth = value;
+                                });
+                                widget.onChanged(value);
+                              },
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
