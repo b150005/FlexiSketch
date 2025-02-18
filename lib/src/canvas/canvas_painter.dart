@@ -72,6 +72,9 @@ class CanvasPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // 現在のスケールに基づいて実際のハンドルサイズを計算
+    final double effectiveHandleSize = _calculateHandleSize(handleSize, transform);
+
     // 現在のキャンバスの状態を保存
     canvas.save();
     // 変換行列を適用
@@ -95,7 +98,12 @@ class CanvasPainter extends CustomPainter {
 
         // 選択状態のオブジェクトは選択時 UI (枠線・ハンドル)を描画
         if (object.isSelected) {
-          _drawSelectionUI(canvas, object, showDeleteHandle: !controller.preserveImages);
+          _drawSelectionUI(
+            canvas,
+            object,
+            handleSize: effectiveHandleSize,
+            showDeleteHandle: !controller.preserveImages,
+          );
         }
       }
     }
@@ -136,6 +144,15 @@ class CanvasPainter extends CustomPainter {
 
     // 矩形を作成
     return Rect.fromPoints(Offset(topLeft.x, topLeft.y), Offset(bottomRight.x, bottomRight.y));
+  }
+
+  /// 実際のハンドルサイズを計算する
+  ///
+  /// [baseSize] 基準となるハンドルサイズ
+  /// [transform] 現在の変換行列
+  double _calculateHandleSize(double baseSize, Matrix4 transform) {
+    final double scale = transform.getMaxScaleOnAxis();
+    return baseSize / scale;
   }
 
   /// グリッドを描画する
@@ -238,6 +255,7 @@ class CanvasPainter extends CustomPainter {
   void _drawSelectionUI(
     Canvas canvas,
     DrawableObject object, {
+    required double handleSize,
     bool showDeleteHandle = true,
   }) {
     final Rect bounds = object.bounds;
@@ -246,13 +264,13 @@ class CanvasPainter extends CustomPainter {
     _drawSelectionBorder(canvas, bounds);
 
     // 各種ハンドルを描画
-    _drawCornerHandles(canvas, bounds); // 四隅の拡大・縮小ハンドル
-    _drawRotationHandle(canvas, bounds); // 回転ハンドル
-    if (showDeleteHandle) _drawDeleteHandle(canvas, bounds); // 削除ハンドル
+    _drawCornerHandles(canvas, bounds, handleSize); // 四隅の拡大・縮小ハンドル
+    _drawRotationHandle(canvas, bounds, handleSize); // 回転ハンドル
+    if (showDeleteHandle) _drawDeleteHandle(canvas, bounds, handleSize); // 削除ハンドル
 
     // TextObjectの場合は編集ハンドルを追加
     if (object is TextObject) {
-      _drawEditHandle(canvas, bounds);
+      _drawEditHandle(canvas, bounds, handleSize);
     }
   }
 
@@ -322,7 +340,7 @@ class CanvasPainter extends CustomPainter {
   ///
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
-  void _drawCornerHandles(Canvas canvas, Rect bounds) {
+  void _drawCornerHandles(Canvas canvas, Rect bounds, double handleSize) {
     final Paint handlePaint = Paint()
       ..color = handleFillColor
       ..style = PaintingStyle.fill;
@@ -348,7 +366,10 @@ class CanvasPainter extends CustomPainter {
   ///
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
-  void _drawRotationHandle(Canvas canvas, Rect bounds) {
+  void _drawRotationHandle(Canvas canvas, Rect bounds, double handleSize) {
+    // 視認性を高めるため、拡大・縮小ハンドルより大きいサイズにする
+    final double effectiveHandleSize = handleSize * 1.5;
+
     final Paint handlePaint = Paint()
       ..color = handleFillColor
       ..style = PaintingStyle.fill;
@@ -361,13 +382,10 @@ class CanvasPainter extends CustomPainter {
     final Offset rotateHandle = Offset(bounds.center.dx, bounds.top - 20);
     final Offset rotateHandleBottom = Offset(rotateHandle.dx, rotateHandle.dy + 12);
 
-    /// ハンドルのサイズ(Iconsを表示するので大きめに設定)
-    final double rotateHandleSize = 24;
-
     // ベースとなる円を描画
     canvas
-      ..drawCircle(rotateHandle, rotateHandleSize / 2, handlePaint)
-      ..drawCircle(rotateHandle, rotateHandleSize / 2, handleBorderPaint)
+      ..drawCircle(rotateHandle, effectiveHandleSize / 2, handlePaint)
+      ..drawCircle(rotateHandle, effectiveHandleSize / 2, handleBorderPaint)
       ..drawLine(bounds.topCenter, rotateHandleBottom, handleBorderPaint);
 
     // 回転アイコンを描画
@@ -376,7 +394,7 @@ class CanvasPainter extends CustomPainter {
       text: TextSpan(
         text: String.fromCharCode(rotateIcon.codePoint),
         style: TextStyle(
-          fontSize: rotateHandleSize * 0.8,
+          fontSize: effectiveHandleSize * 0.8,
           fontFamily: rotateIcon.fontFamily,
           color: handleBorderColor,
         ),
@@ -398,7 +416,10 @@ class CanvasPainter extends CustomPainter {
   ///
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
-  void _drawDeleteHandle(Canvas canvas, Rect bounds) {
+  void _drawDeleteHandle(Canvas canvas, Rect bounds, double handleSize) {
+    // 視認性を高めるため、拡大・縮小ハンドルより大きいサイズにする
+    final double effectiveHandleSize = handleSize * 1.5;
+
     final Paint handlePaint = Paint()
       ..color = deleteHandleColor
       ..style = PaintingStyle.fill;
@@ -411,13 +432,10 @@ class CanvasPainter extends CustomPainter {
     final Offset deleteHandle = Offset(bounds.center.dx, bounds.bottom + 20);
     final Offset deleteHandleTop = Offset(deleteHandle.dx, deleteHandle.dy - 12);
 
-    /// ハンドルのサイズ(Iconsを表示するので大きめに設定)
-    final double deleteHandleSize = 24;
-
     // ベースとなる円を描画
     canvas
-      ..drawCircle(deleteHandle, deleteHandleSize / 2, handlePaint)
-      ..drawCircle(deleteHandle, deleteHandleSize / 2, handleBorderPaint)
+      ..drawCircle(deleteHandle, effectiveHandleSize / 2, handlePaint)
+      ..drawCircle(deleteHandle, effectiveHandleSize / 2, handleBorderPaint)
       ..drawLine(bounds.bottomCenter, deleteHandleTop, handleBorderPaint);
 
     // 削除アイコンを描画
@@ -426,7 +444,7 @@ class CanvasPainter extends CustomPainter {
       text: TextSpan(
         text: String.fromCharCode(deleteIcon.codePoint),
         style: TextStyle(
-          fontSize: deleteHandleSize * 0.8,
+          fontSize: effectiveHandleSize * 0.8,
           fontFamily: deleteIcon.fontFamily,
           color: Colors.white,
         ),
@@ -448,7 +466,10 @@ class CanvasPainter extends CustomPainter {
   ///
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
-  void _drawEditHandle(Canvas canvas, Rect bounds) {
+  void _drawEditHandle(Canvas canvas, Rect bounds, double handleSize) {
+    // 視認性を高めるため、拡大・縮小ハンドルより大きいサイズにする
+    final double effectiveHandleSize = handleSize * 1.5;
+
     final Paint handlePaint = Paint()
       ..color = handleFillColor
       ..style = PaintingStyle.fill;
@@ -462,13 +483,10 @@ class CanvasPainter extends CustomPainter {
     final Offset editHandle = Offset(bounds.right + 20, bounds.center.dy);
     final Offset editHandleLeft = Offset(editHandle.dx - 12, editHandle.dy);
 
-    /// ハンドルのサイズ(Iconsを表示するので大きめに設定)
-    final double editHandleSize = 24;
-
     // ベースとなる円を描画
     canvas
-      ..drawCircle(editHandle, editHandleSize / 2, handlePaint)
-      ..drawCircle(editHandle, editHandleSize / 2, handleBorderPaint)
+      ..drawCircle(editHandle, effectiveHandleSize / 2, handlePaint)
+      ..drawCircle(editHandle, effectiveHandleSize / 2, handleBorderPaint)
       ..drawLine(bounds.centerRight, editHandleLeft, handleBorderPaint);
 
     // 編集アイコンを描画
@@ -477,7 +495,7 @@ class CanvasPainter extends CustomPainter {
       text: TextSpan(
         text: String.fromCharCode(editIcon.codePoint),
         style: TextStyle(
-          fontSize: editHandleSize * 0.8,
+          fontSize: effectiveHandleSize * 0.8,
           fontFamily: editIcon.fontFamily,
           color: editHandleColor,
         ),
