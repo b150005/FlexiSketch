@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
 import '../objects/drawable_object.dart';
+import '../objects/image_object.dart';
 import '../objects/text_object.dart';
 import 'canvas_painter.dart';
 
@@ -98,7 +99,44 @@ class InfiniteCanvasState extends State<InfiniteCanvas> {
 
   /// コントローラの状態変更時に呼び出されるコールバック
   void _onControllerChanged() {
+    // コントローラのオブジェクトリストが更新され、単一の画像オブジェクトのみが含まれている場合、
+    // 自動的にズームを適用
+    if (widget.controller.objects.length == 1 && widget.controller.objects.first is ImageObject) {
+      setInitialZoomForImage(widget.controller.objects.first as ImageObject);
+    }
     setState(() {});
+  }
+
+  /// 画像オブジェクトのサイズに基づいて初期拡大率を決定する
+  ///
+  /// [imageObject] 画像オブジェクト
+  void setInitialZoomForImage(ImageObject imageObject) {
+    if (!mounted) return;
+
+    final Size viewportSize = context.size ?? Size.zero;
+    if (viewportSize == Size.zero) return;
+
+    // 画像のバウンディングボックスを取得
+    final Rect imageBounds = imageObject.bounds;
+
+    // ビューポートと画像のアスペクト比を計算
+    final double viewportAspect = viewportSize.width / viewportSize.height;
+    final double imageAspect = imageBounds.width / imageBounds.height;
+
+    // スケールを計算（20pxのパディングを考慮）
+    final double scaleX = (viewportSize.width - 40) / imageBounds.width;
+    final double scaleY = (viewportSize.height - 40) / imageBounds.height;
+
+    // アスペクト比を維持しながら、最適なスケールを選択
+    final double scaleFactor = imageAspect > viewportAspect ? scaleX : scaleY;
+
+    // 変換行列を作成して適用
+    final Matrix4 matrix = Matrix4.identity();
+    matrix.translate(viewportSize.width / 2, viewportSize.height / 2);
+    matrix.scale(scaleFactor);
+    matrix.translate(-imageBounds.center.dx, -imageBounds.center.dy);
+
+    _transformationController.value = matrix;
   }
 
   /// キャンバスの初期変換を設定します。

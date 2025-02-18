@@ -22,6 +22,7 @@ import 'src/storage/sketch_data.dart';
 import 'src/tools/drawing_tool.dart';
 import 'src/tools/shape_tool.dart';
 import 'src/utils/flexi_sketch_data_helper.dart';
+import 'src/utils/flexi_sketch_size_helper.dart';
 import 'src/widgets/icon_list_tile.dart';
 import 'src/widgets/text_input_dialog.dart';
 
@@ -92,6 +93,9 @@ class FlexiSketchController extends ChangeNotifier {
 
   /// 選択中のオブジェクトが画像かどうか
   bool get isImageSelected => _selectedObject is ImageObject;
+
+  /// 読み込んだJSONデータ
+  Map<String, dynamic>? _initialJson;
 
   /// 変形開始時の状態
   DrawableObject? _transformStartState;
@@ -732,11 +736,27 @@ class FlexiSketchController extends ChangeNotifier {
     bool addHistory = true,
   }) async {
     try {
-      // 画像オブジェクトの生成
-      final (ImageObject imageObject, Size _) = await FlexiSketchDataHelper.createImageObjectFromBytes(
-        imageData,
-        config: config,
-        canvasSize: _canvasSize,
+      // 画像をデコード
+      final ui.Image decodedImage = await FlexiSketchDataHelper.decodeImageFromBytes(imageData);
+
+      // 画像の元サイズを使用（リサイズしない）
+      final Size imageSize = Size(
+        decodedImage.width.toDouble(),
+        decodedImage.height.toDouble(),
+      );
+
+      // キャンバスサイズの更新（必要に応じて）
+      final Size effectiveCanvasSize = _canvasSize ??
+          FlexiSketchSizeHelper.calculateCanvasSize(
+            imageSize: imageSize,
+            config: config,
+          );
+
+      // 画像オブジェクトを生成（元のサイズを維持）
+      final ImageObject imageObject = FlexiSketchDataHelper.createImageObject(
+        image: decodedImage,
+        center: FlexiSketchDataHelper.getCanvasCenter(effectiveCanvasSize),
+        size: imageSize, // 元のサイズを使用
       );
 
       // 履歴に追加して画像を配置
@@ -745,6 +765,7 @@ class FlexiSketchController extends ChangeNotifier {
       }
       _objects.add(imageObject);
 
+      // InfiniteCanvasの初期ズームを設定するためのイベントを発火
       notifyListeners();
     } catch (e) {
       _notifyError('画像の追加中にエラーが発生しました: $e');
@@ -904,6 +925,9 @@ class FlexiSketchController extends ChangeNotifier {
     try {
       _objects.clear();
 
+      // JSONデータを保存（calculateInitialTransformで使用）
+      _initialJson = json;
+
       // キャンバスサイズの復元
       final Map<String, dynamic> canvas = json['canvas'] as Map<String, dynamic>;
       _canvasSize = Size(
@@ -934,6 +958,25 @@ class FlexiSketchController extends ChangeNotifier {
   /// JSONデータ読み込み時の初期変換行列を計算する
   Matrix4? calculateInitialTransform(Size viewportSize) {
     if (_objects.isEmpty || _canvasSize == null) return null;
+
+    // 初期変換情報がある場合はそれを使用
+    if (_initialJson != null &&
+        _initialJson!['content'] is Map<String, dynamic> &&
+        _initialJson!['content']['initialTransform'] is Map<String, dynamic>) {
+      final transform = _initialJson!['content']['initialTransform'] as Map<String, dynamic>;
+
+      final double scale = transform['scale'] as double;
+      final double centerX = transform['centerX'] as double;
+      final double centerY = transform['centerY'] as double;
+
+      // 変換行列を作成
+      final Matrix4 result = Matrix4.identity();
+      result.translate(centerX, centerY);
+      result.scale(scale);
+      result.translate(-centerX, -centerY);
+
+      return result;
+    }
 
     // 全オブジェクトのバウンディングボックスを計算
     Rect contentBounds = _objects.first.bounds;

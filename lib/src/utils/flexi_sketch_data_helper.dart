@@ -72,21 +72,57 @@ class FlexiSketchDataHelper {
     final FlexiSketchController controller = FlexiSketchController();
 
     try {
-      final Size? canvasSize = width != null && height != null ? Size(width, height) : null;
+      // 画像をデコード
+      final ui.Image decodedImage = await decodeImageFromBytes(imageData);
 
-      // 画像オブジェクトの生成
-      final (ImageObject imageObject, Size effectiveCanvasSize) = await createImageObjectFromBytes(
-        imageData,
-        config: config,
-        canvasSize: canvasSize,
+      // 画像の元サイズを使用（リサイズしない）
+      final Size imageSize = Size(
+        decodedImage.width.toDouble(),
+        decodedImage.height.toDouble(),
+      );
+
+      // キャンバスサイズの計算
+      final Size canvasSize = width != null && height != null
+          ? Size(width, height)
+          : FlexiSketchSizeHelper.calculateCanvasSize(
+              imageSize: imageSize,
+              config: config,
+            );
+
+      // 画像オブジェクトを生成（元のサイズを維持）
+      final ImageObject imageObject = createImageObject(
+        image: decodedImage,
+        center: getCanvasCenter(canvasSize),
+        size: imageSize, // 元のサイズを使用
       );
 
       // コントローラの設定
-      controller.updateCanvasSize(effectiveCanvasSize);
+      controller.updateCanvasSize(canvasSize);
       controller.objects.add(imageObject);
 
       // JSONデータを生成
       final Map<String, dynamic> result = await controller.generateJsonData(null);
+
+      // 画像を画面全体に表示するために必要な初期変換行列を計算
+      // ビューポートと画像のアスペクト比を計算
+      final double viewportAspect = canvasSize.width / canvasSize.height;
+      final double imageAspect = imageSize.width / imageSize.height;
+
+      // スケールを計算（20pxのパディングを考慮）
+      final double scaleX = (canvasSize.width - 40) / imageSize.width;
+      final double scaleY = (canvasSize.height - 40) / imageSize.height;
+
+      // アスペクト比を維持しながら、最適なスケールを選択
+      final double scaleFactor = imageAspect > viewportAspect ? scaleX : scaleY;
+
+      // 初期変換行列の情報をJSONに追加
+      result['content']['initialTransform'] = {
+        'scale': scaleFactor,
+        'centerX': canvasSize.width / 2,
+        'centerY': canvasSize.height / 2,
+        'imageWidth': imageSize.width,
+        'imageHeight': imageSize.height,
+      };
 
       return result;
     } catch (e) {
