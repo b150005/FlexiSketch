@@ -572,9 +572,6 @@ class FlexiSketchController extends ChangeNotifier {
       final XFile? pickedFile = await (source != null
           ? picker.pickImage(
               source: source,
-              imageQuality: 80,
-              maxWidth: 1920,
-              maxHeight: 1920,
             )
           : picker.pickImage(source: ImageSource.gallery));
 
