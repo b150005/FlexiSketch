@@ -5,6 +5,7 @@ import '../object_serializer.dart';
 import 'image_object_serializer.dart';
 import 'path_object_serializer.dart';
 import 'shape_object_serializer.dart';
+import 'text_object_serializer.dart';
 
 /// DrawableObjectのシリアライズを担当するクラス
 ///
@@ -69,20 +70,20 @@ class DrawableObjectSerializer extends ObjectSerializer<DrawableObject> {
   @override
   Future<DrawableObject> fromJson(Map<String, dynamic> json) async {
     // バージョンチェック
-    final version = json['version'] as int;
+    final int version = json['version'] as int;
     if (version != 1) {
       throw FormatException('Unsupported version: $version');
     }
 
-    final type = json['type'] as String;
-    final properties = json['properties'] as Map<String, dynamic>;
-    final data = json['data'] as Map<String, dynamic>;
+    final String type = json['type'] as String;
+    final Map<String, dynamic> properties = json['properties'] as Map<String, dynamic>;
+    final Map<String, dynamic> data = json['data'] as Map<String, dynamic>;
 
     // 型に応じたシリアライザを取得
-    final specificSerializer = _getSerializerForType(type);
+    final ObjectSerializer<Serializable> specificSerializer = _getSerializerForType(type);
 
     // オブジェクトの復元
-    final object = await specificSerializer.fromJson(data);
+    final Serializable object = await specificSerializer.fromJson(data);
 
     // 共通プロパティの復元
     if (object is DrawableObject) {
@@ -111,6 +112,8 @@ class DrawableObjectSerializer extends ObjectSerializer<DrawableObject> {
         return ShapeObjectSerializer.instance;
       case 'image':
         return ImageObjectSerializer.instance;
+      case 'text':
+        return TextObjectSerializer.instance;
       default:
         throw FormatException('Unknown object type: $type');
     }

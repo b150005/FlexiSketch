@@ -3,20 +3,22 @@ import 'package:flutter/material.dart';
 import '../../flexi_sketch_controller.dart';
 import 'drawing_tool.dart';
 
-class PenTool implements DrawingTool {
+class TextTool implements DrawingTool {
+  const TextTool();
+
   @override
   void startDrawing(Offset point, FlexiSketchController controller) {
-    controller.startPath(point);
+    controller.startText(point);
   }
 
   @override
   void continueDrawing(Offset point, FlexiSketchController controller) {
-    controller.addPointToPath(point);
+    // テキストツールでは不要
   }
 
   @override
   void endDrawing(FlexiSketchController controller) {
-    controller.endPath();
+    // テキストツールでは不要
   }
 
   @override
@@ -24,7 +26,7 @@ class PenTool implements DrawingTool {
     return Paint()
       ..color = color
       ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke
+      ..style = PaintingStyle.fill
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
   }

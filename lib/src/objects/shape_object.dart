@@ -70,8 +70,8 @@ class ShapeObject extends DrawableObject {
   @override
   bool checkIntersection(Path other) {
     try {
-      final transformedPath = _createPath().transform(transform.storage);
-      final intersectionPath = Path.combine(
+      final Path transformedPath = _createPath().transform(transform.storage);
+      final Path intersectionPath = Path.combine(
         PathOperation.intersect,
         transformedPath,
         other,
@@ -86,14 +86,14 @@ class ShapeObject extends DrawableObject {
   @override
   bool checkContainsPoint(Offset localPoint) {
     try {
-      final testPath = Path()
+      final Path testPath = Path()
         ..addRect(Rect.fromCenter(
           center: localPoint,
           width: 10.0,
           height: 10.0,
         ));
 
-      final intersectionPath = Path.combine(
+      final Path intersectionPath = Path.combine(
         PathOperation.intersect,
         _createPath(),
         testPath,
@@ -107,7 +107,7 @@ class ShapeObject extends DrawableObject {
 
   @override
   ShapeObject clone() {
-    final clonedPaint = Paint()
+    final Paint clonedPaint = Paint()
       ..color = paint.color
       ..strokeWidth = paint.strokeWidth
       ..style = paint.style
@@ -115,7 +115,7 @@ class ShapeObject extends DrawableObject {
       ..strokeJoin = paint.strokeJoin
       ..blendMode = paint.blendMode;
 
-    final clone = ShapeObject(
+    final ShapeObject clone = ShapeObject(
       startPoint: _startPoint,
       endPoint: _endPoint,
       shapeType: shapeType,
@@ -142,7 +142,7 @@ class ShapeObject extends DrawableObject {
 
   /// 図形の種類に応じたパスを生成する
   Path _buildShapePath() {
-    final path = Path();
+    final Path path = Path();
 
     // グローバル座標からローカル座標に変換
     final rect = Rect.fromPoints(_startPoint - globalCenter, _endPoint - globalCenter);
@@ -169,12 +169,12 @@ class ShapeObject extends DrawableObject {
   /// [newEndPoint] 新しい終点座標
   void updateShape(Offset newEndPoint) {
     // 最小サイズを確保
-    final currentRect = Rect.fromPoints(_startPoint, newEndPoint);
+    final Rect currentRect = Rect.fromPoints(_startPoint, newEndPoint);
 
     // 最小サイズの制約を適用
     if (currentRect.width < minSize || currentRect.height < minSize) {
       // 最小サイズを保持しつつ、アスペクト比を維持
-      final aspect = currentRect.width / currentRect.height;
+      final double aspect = currentRect.width / currentRect.height;
       double newWidth, newHeight;
 
       if (currentRect.width < minSize) {
@@ -186,7 +186,7 @@ class ShapeObject extends DrawableObject {
       }
 
       // 開始点からの相対位置で新しい終点を計算
-      final direction = (newEndPoint - _startPoint).direction;
+      final double direction = (newEndPoint - _startPoint).direction;
       newEndPoint = _startPoint + Offset(newWidth * math.cos(direction), newHeight * math.sin(direction));
     }
 

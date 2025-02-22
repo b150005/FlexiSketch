@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
@@ -7,6 +8,7 @@ import '../handlers/save_handler.dart';
 import '../tools/eraser_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/shape_tool.dart';
+import '../tools/text_tool.dart';
 import 'color_button.dart';
 import 'stroke_width_button.dart';
 import 'tool_button.dart';
@@ -26,12 +28,20 @@ class Toolbar extends StatefulWidget {
   /// データとして保存する際のコールバック
   final SaveSketchAsData? onSaveAsData;
 
-  /// ツールバーの表示状態
-  final bool isVisible;
+  /// 戻る/進むボタンを非表示にするかどうか
+  final bool hideUndoRedo;
 
-  // TODO: 表示状態を制御できていないので要修正
-  /// ツールバーの表示状態を変更するコールバック
-  final ValueChanged<bool>? onVisibilityChanged;
+  /// クリアボタンを非表示にするかどうか
+  final bool hideClear;
+
+  /// 画像アップロードボタンを非表示にするかどうか
+  final bool hideUpload;
+
+  /// 画像貼り付けボタンを非表示にするかどうか
+  final bool hideImagePaste;
+
+  /// 図形描画ボタンを非表示にするかどうか
+  final bool hideShapeDrawing;
 
   /// ツールバーウィジェットを作成します。
   ///
@@ -41,23 +51,20 @@ class Toolbar extends StatefulWidget {
   const Toolbar({
     super.key,
     required this.controller,
-    this.isVisible = true,
-    this.onVisibilityChanged,
     this.onSaveAsImage,
     this.onSaveAsData,
+    this.hideUndoRedo = false,
+    this.hideClear = false,
+    this.hideUpload = false,
+    this.hideImagePaste = false,
+    this.hideShapeDrawing = false,
   });
 
   @override
-  State<Toolbar> createState() => _ToolbarState();
+  State<Toolbar> createState() => ToolbarState();
 }
 
-class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
-  /// ツールバーの表示アニメーションを制御するコントローラ
-  late AnimationController _controller;
-
-  /// フェードインアニメーションの定義
-  late Animation<double> _fadeAnimation;
-
+class ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   /// カラーピッカーの表示状態
   bool _isColorPickerExpanded = false;
 
@@ -76,35 +83,11 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    );
-    if (widget.isVisible) {
-      _controller.forward();
-    }
     widget.controller.addListener(_onControllerChanged);
   }
 
   @override
-  void didUpdateWidget(Toolbar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isVisible != oldWidget.isVisible) {
-      if (widget.isVisible) {
-        _controller.forward();
-      } else {
-        _controller.reverse();
-      }
-    }
-  }
-
-  @override
   void dispose() {
-    _controller.dispose();
     widget.controller.removeListener(_onControllerChanged);
     super.dispose();
   }
@@ -112,54 +95,35 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: AnimatedBuilder(
-        animation: _fadeAnimation,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(0, 100 * (1 - _fadeAnimation.value)),
-            child: Opacity(
-              opacity: _fadeAnimation.value,
-              child: child,
+      child: Container(
+        margin: EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 12,
+              offset: const Offset(0, -2),
             ),
-          );
-        },
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {}, // ジェスチャーをここで止める
-          child: Container(
-            margin: EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: MediaQuery.of(context).size.height > 600 ? 16 : 8,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildToolbarHandle(),
-                const SizedBox(height: 12),
-                _buildFileTools(),
-                const SizedBox(height: 12),
-                _buildDrawingTools(),
-                if (_isColorPickerExpanded) ...[
-                  const SizedBox(height: 12),
-                  _buildColorPalette(),
-                ],
-                const SizedBox(height: 12),
-                _buildEditingTools(),
-              ],
-            ),
-          ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildToolbarHandle(),
+            const SizedBox(height: 12),
+            _buildFileTools(),
+            const SizedBox(height: 12),
+            _buildDrawingTools(),
+            if (_isColorPickerExpanded) ...[
+              const SizedBox(height: 12),
+              _buildColorPalette(),
+            ],
+            const SizedBox(height: 12),
+            _buildEditingTools(),
+          ],
         ),
       ),
     );
@@ -169,19 +133,12 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   ///
   /// 上方向へのドラッグジェスチャーを検知し、ツールバーの表示/非表示を切り替える
   Widget _buildToolbarHandle() {
-    return GestureDetector(
-      onVerticalDragEnd: (details) {
-        if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
-          widget.onVisibilityChanged?.call(false);
-        }
-      },
-      child: Container(
-        width: 32,
-        height: 4,
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(2),
-        ),
+    return Container(
+      width: 32,
+      height: 4,
+      decoration: BoxDecoration(
+        color: Colors.grey.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(2),
       ),
     );
   }
@@ -210,39 +167,37 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
               ToolButton(
                 icon: Icons.save,
                 onPressed: () async {
-                  // FIXME: Progress値の指定についてはもうちょっとバランス良くできそう
                   // 初期状況の通知
-                  await widget.onSaveAsData!(context, null, null, 0.01);
-                  await Future<void>.delayed(const Duration(milliseconds: 50));
+                  await widget.onSaveAsData!(context, null, null);
 
                   // JSONデータ生成中は進捗状況を通知
-                  final Map<String, dynamic> jsonData = await widget.controller.generateJsonData(
-                    null,
-                    // 画像データの生成が残っているので progress = 1 の場合は進捗状況を 99% とする
-                    (progress) => widget.onSaveAsData!(context, null, null, progress == 1 ? 0.99 : progress),
-                  );
+                  final Map<String, dynamic> jsonData = await widget.controller.generateJsonData(null);
 
                   // 画像データの生成
                   final Uint8List imageData = await widget.controller.generateImageData();
 
                   if (!mounted) return;
-                  widget.onSaveAsData!(context, jsonData, imageData, 1.0);
+                  widget.onSaveAsData!(context, jsonData, imageData);
                 },
                 tooltip: 'データとして保存',
               ),
           ]),
-          if (widget.onSaveAsImage != null || widget.onSaveAsData != null) _buildVerticalDivider(),
+          if ((widget.onSaveAsImage != null || widget.onSaveAsData != null) &&
+              (!widget.hideUpload || !widget.hideImagePaste))
+            _buildVerticalDivider(),
           _buildToolGroup([
-            ToolButton(
-              icon: Icons.upload_file,
-              tooltip: '画像をアップロード',
-              onPressed: () => widget.controller.showImagePickerAndAddImage(context),
-            ),
-            ToolButton(
-              icon: Icons.paste,
-              tooltip: '画像を貼り付け',
-              onPressed: widget.controller.pasteImageFromClipboard,
-            ),
+            if (!widget.hideUpload)
+              ToolButton(
+                icon: Icons.upload_file,
+                tooltip: '画像をアップロード',
+                onPressed: () => widget.controller.showImagePickerAndAddImage(context),
+              ),
+            if (!widget.hideImagePaste)
+              ToolButton(
+                icon: Icons.paste,
+                tooltip: '画像を貼り付け',
+                onPressed: widget.controller.pasteImageFromClipboard,
+              ),
           ]),
         ],
       ),
@@ -253,7 +208,7 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   ///
   /// ペン、消しゴム、図形描画、色の選択、線の太さの設定など、描画に関連するツールボタンを提供する
   Widget _buildDrawingTools() {
-    return SingleChildScrollView(
+    final Widget internal = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -273,34 +228,44 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
             ),
           ]),
           _buildVerticalDivider(),
-          _buildToolGroup([
-            ToolButton(
-              icon: Icons.crop_square,
-              tooltip: '四角形',
-              isSelected: widget.controller.isSpecificToolSelected(
-                ShapeTool(shapeType: ShapeType.rectangle),
+          ToolButton(
+            icon: Icons.text_fields,
+            tooltip: 'テキスト',
+            isSelected: widget.controller.isSpecificToolSelected(const TextTool()),
+            onPressed: () => widget.controller.toggleTool(const TextTool()),
+          ),
+          if (!widget.hideShapeDrawing) ...[
+            _buildVerticalDivider(),
+            _buildToolGroup([
+              ToolButton(
+                icon: Icons.crop_square,
+                tooltip: '四角形',
+                isSelected: widget.controller.isSpecificToolSelected(
+                  ShapeTool(shapeType: ShapeType.rectangle),
+                ),
+                onPressed: () => widget.controller.toggleTool(
+                  ShapeTool(shapeType: ShapeType.rectangle),
+                ),
               ),
-              onPressed: () => widget.controller.toggleTool(
-                ShapeTool(shapeType: ShapeType.rectangle),
+              ToolButton(
+                icon: Icons.circle_outlined,
+                tooltip: '円',
+                isSelected: widget.controller.isSpecificToolSelected(
+                  ShapeTool(shapeType: ShapeType.circle),
+                ),
+                onPressed: () => widget.controller.toggleTool(
+                  ShapeTool(shapeType: ShapeType.circle),
+                ),
               ),
-            ),
-            ToolButton(
-              icon: Icons.circle_outlined,
-              tooltip: '円',
-              isSelected: widget.controller.isSpecificToolSelected(
-                ShapeTool(shapeType: ShapeType.circle),
-              ),
-              onPressed: () => widget.controller.toggleTool(
-                ShapeTool(shapeType: ShapeType.circle),
-              ),
-            ),
-          ]),
+            ]),
+          ],
           _buildVerticalDivider(),
           _buildToolGroup([
             ColorButton(
               color: widget.controller.currentColor,
-              isExpanded: _isColorPickerExpanded,
-              onPressed: _toggleColorPicker,
+              onColorChanged: (color) {
+                widget.controller.setColor(color);
+              },
             ),
             StrokeWidthButton(
               strokeWidth: widget.controller.currentStrokeWidth,
@@ -310,6 +275,15 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
         ],
       ),
     );
+
+    if (kIsWeb) {
+      return internal;
+    } else {
+      return SizedBox(
+        width: MediaQuery.of(context).size.width * 0.8,
+        child: internal,
+      );
+    }
   }
 
   /// 編集ツールグループを構築する
@@ -321,26 +295,29 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildToolGroup([
-            ToolButton(
-              icon: Icons.undo,
-              tooltip: '元に戻す',
-              onPressed: widget.controller.canUndo ? widget.controller.undo : null,
-            ),
-            ToolButton(
-              icon: Icons.redo,
-              tooltip: 'やり直す',
-              onPressed: widget.controller.canRedo ? widget.controller.redo : null,
-            ),
-          ]),
-          _buildVerticalDivider(),
-          _buildToolGroup([
-            ToolButton(
-              icon: Icons.delete_outline,
-              tooltip: '全て消去',
-              onPressed: widget.controller.clear,
-            ),
-          ]),
+          if (!widget.hideUndoRedo)
+            _buildToolGroup([
+              ToolButton(
+                icon: Icons.undo,
+                tooltip: '元に戻す',
+                onPressed: widget.controller.canUndo ? widget.controller.undo : null,
+              ),
+              ToolButton(
+                icon: Icons.redo,
+                tooltip: 'やり直す',
+                onPressed: widget.controller.canRedo ? widget.controller.redo : null,
+              ),
+            ]),
+          if (!widget.hideClear) ...[
+            _buildVerticalDivider(),
+            _buildToolGroup([
+              ToolButton(
+                icon: Icons.delete_outline,
+                tooltip: '全て消去',
+                onPressed: widget.controller.clear,
+              ),
+            ]),
+          ]
         ],
       ),
     );
@@ -351,34 +328,34 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   /// 定義済みの色から選択できるパレットを提供する
   /// ToolButtonと同じサイズ・デザインで統一感のある表示を行う
   Widget _buildColorPalette() {
-    return SizedBox(
-      height: 36, // ToolButtonと同じ高さ
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _predefinedColors.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final color = _predefinedColors[index];
-          return InkWell(
-            onTap: () {
-              widget.controller.setColor(color);
-              setState(() => _isColorPickerExpanded = false);
-            },
-            borderRadius: BorderRadius.circular(6), // ToolButtonと同じ角丸
-            child: Container(
-              width: 36, // ToolButtonと同じ幅
-              height: 36, // ToolButtonと同じ高さ
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(6), // ToolButtonと同じ角丸
-                border: Border.all(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  width: 1,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: _predefinedColors.map((color) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: InkWell(
+              onTap: () {
+                widget.controller.setColor(color);
+                setState(() => _isColorPickerExpanded = false);
+              },
+              borderRadius: BorderRadius.circular(6),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
                 ),
               ),
             ),
           );
-        },
+        }).toList(),
       ),
     );
   }
@@ -389,10 +366,13 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
   ///
   /// [children] グループ化するウィジェットのリスト
   Widget _buildToolGroup(List<Widget> children) {
+    if (children.isEmpty) {
+      return Container();
+    }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: children.map((child) {
-        final index = children.indexOf(child);
+        final int index = children.indexOf(child);
         return Padding(
           padding: EdgeInsets.only(
             left: index == 0 ? 0 : 4,
@@ -411,20 +391,13 @@ class _ToolbarState extends State<Toolbar> with SingleTickerProviderStateMixin {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: SizedBox(
-        height: 24, // ToolButtonの高さの2/3程度
+        height: 24,
         child: VerticalDivider(
           thickness: 1,
           color: Colors.grey.withValues(alpha: 0.3),
         ),
       ),
     );
-  }
-
-  /// カラーピッカーの表示状態を切り替える
-  void _toggleColorPicker() {
-    setState(() {
-      _isColorPickerExpanded = !_isColorPickerExpanded;
-    });
   }
 
   /// コントローラの状態変更をUIに反映する

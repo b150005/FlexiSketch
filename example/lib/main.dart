@@ -1,12 +1,13 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flexi_sketch/flexi_sketch.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+
+import 'src/services/file_handler.dart';
+import 'src/services/file_handler_factory.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,33 +38,23 @@ class TestScreen extends StatefulWidget {
 
 class _TestScreenState extends State<TestScreen> {
   Map<String, dynamic>? _currentData;
-  final TextEditingController _jsonController = TextEditingController();
-  ImageLoadingState? _loadingState;
 
-  final FlexiSketchController _controller = FlexiSketchController();
-
-  // テキストが空かどうかの状態を管理
-  bool _isTextEmpty = true;
+  late final FlexiSketchController _controller;
+  late final FileHandler _fileHandler;
 
   @override
   void initState() {
     super.initState();
 
-    // テキストの変更を監視
-    _jsonController.addListener(() {
-      final isEmpty = _jsonController.text.isEmpty;
-      if (isEmpty != _isTextEmpty) {
-        setState(() {
-          _isTextEmpty = isEmpty;
-        });
-      }
-    });
+    _controller = FlexiSketchController(context: context, preserveImages: false);
+    _fileHandler = FileHandlerFactory.create(context);
+
+    _loadInitialImage();
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _jsonController.dispose();
     super.dispose();
   }
 
@@ -73,11 +64,17 @@ class _TestScreenState extends State<TestScreen> {
       appBar: AppBar(
         title: const Text("FlexiSketch Demo"),
         actions: [
-          // 画像読み込みボタンを追加
+          // JSON読み込みボタン
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            tooltip: 'JSONを読み込む',
+            onPressed: _loadJsonData,
+          ),
+          // 画像読み込みボタン
           IconButton(
             icon: const Icon(Icons.image),
             tooltip: '画像を読み込んでキャンバスを上書き',
-            onPressed: _loadingState != null ? null : () => _pickAndLoadImage(context),
+            onPressed: () => _pickAndLoadImage(context),
           ),
         ],
       ),
@@ -94,111 +91,95 @@ class _TestScreenState extends State<TestScreen> {
 
                   // DEBUG: 画像として保存
                   onSaveAsImage: (context, imageData) async {
-                    try {
-                      // 一時ディレクトリを取得
-                      final tempDir = await getTemporaryDirectory();
-                      final timestamp = DateTime.now().millisecondsSinceEpoch;
-                      final tempFile = File('${tempDir.path}/sketch_$timestamp.png');
-
-                      // 画像データを一時ファイルとして保存
-                      await tempFile.writeAsBytes(imageData);
-
-                      if (!context.mounted) return;
-                      final box = context.findRenderObject() as RenderBox?;
-
-                      // 共有ダイアログを表示
-                      await Share.shareXFiles(
-                        [XFile(tempFile.path)],
-                        subject: '画像データ',
-                        sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
-                      ).then((_) async {
-                        // 共有完了後に一時ファイルを削除
-                        if (await tempFile.exists()) {
-                          await tempFile.delete();
-                        }
-                      });
-                    } catch (e) {
-                      developer.log('画像の共有エラー: $e');
-                    }
+                    _handleSaveImage(context, imageData);
                   },
 
                   // DEBUG: JSONとして保存
-                  onSaveAsData: (context, jsonData, imageData, progress) async {
+                  onSaveAsData: (context, jsonData, imageData) async {
                     if (jsonData == null || imageData == null) {
                       return;
                     }
 
-                    try {
-                      // JSONデータを整形
-                      final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
-
-                      // 一時ディレクトリを取得
-                      final tempDir = await getTemporaryDirectory();
-                      final timestamp = DateTime.now().millisecondsSinceEpoch;
-                      final tempFile = File('${tempDir.path}/sketch_$timestamp.json');
-
-                      // JSONデータを一時ファイルとして保存
-                      await tempFile.writeAsString(jsonString);
-
-                      if (!context.mounted) return;
-                      final box = context.findRenderObject() as RenderBox?;
-
-                      // 共有ダイアログを表示
-                      await Share.shareXFiles(
-                        [XFile(tempFile.path)],
-                        subject: 'JSONデータ',
-                        sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
-                      ).then((_) async {
-                        // 共有完了後に一時ファイルを削除
-                        if (await tempFile.exists()) {
-                          await tempFile.delete();
-                        }
-                      });
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('JSONデータの共有に失敗しました: $e')),
-                      );
-                      developer.log('JSONデータの共有エラー: $e');
-                    }
+                    _handleSaveData(context, jsonData, imageData);
                   },
                   onError: (message) {
-                    setState(() {
-                      _loadingState = null;
-                    });
+                    developer.log(message);
                   },
+                  // hideUndoRedo: true,
+                  // hideClear: true,
+                  // hideUpload: true,
+                  // hideImagePaste: true,
+                  // hideShapeDrawing: true,
                 ),
               ),
             ],
           ),
-          // ローディングオーバーレイ
-          if (_loadingState != null)
-            Container(
-              color: Colors.black54,
-              child: Center(
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_loadingState!.phase.message),
-                        const SizedBox(
-                          height: 3,
-                        ),
-                        const Text(
-                          'この処理には時間がかかります',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
+  }
+
+  Future<void> _loadInitialImage() async {
+    // Assets を ByteData として読み込む
+    final ByteData data = await rootBundle.load('sample.jpg');
+    final Uint8List imageData = data.buffer.asUint8List();
+
+    _controller.addImageFromBytes(imageData, addHistory: false);
+  }
+
+  /// 画像として保存するボタン押下時の処理
+  Future<void> _handleSaveImage(BuildContext context, Uint8List imageData) async {
+    try {
+      final fileName = 'sketch_${DateTime.now().millisecondsSinceEpoch}.png';
+      await _fileHandler.saveImageFile(imageData, fileName);
+    } catch (e) {
+      developer.log('画像の保存エラー: $e');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('画像の保存に失敗しました: $e')),
+      );
+    }
+  }
+
+  /// JSON ファイルとして保存するボタン押下時の処理
+  Future<void> _handleSaveData(
+    BuildContext context,
+    Map<String, dynamic>? jsonData,
+    Uint8List? imageData,
+  ) async {
+    if (jsonData == null || imageData == null) return;
+
+    try {
+      final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
+      final fileName = 'sketch_${DateTime.now().millisecondsSinceEpoch}.json';
+      await _fileHandler.saveJsonFile(jsonString, fileName);
+    } catch (e) {
+      developer.log('JSONデータの保存エラー: $e');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('JSONデータの保存に失敗しました: $e')),
+      );
+    }
+  }
+
+  /// JSON ファイルを選択してキャンバスを読み込む
+  Future<void> _loadJsonData() async {
+    try {
+      final jsonString = await _fileHandler.loadJsonFile();
+      if (jsonString == null) return;
+
+      final jsonData = json.decode(jsonString);
+      setState(() {
+        _currentData = jsonData;
+      });
+    } catch (e) {
+      developer.log('JSONデータの読み込みエラー: $e');
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('JSONデータの読み込みに失敗しました: $e')),
+      );
+    }
   }
 
   /// 画像を選択してFlexiSketchに読み込む
@@ -208,10 +189,6 @@ class _TestScreenState extends State<TestScreen> {
       final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
       if (pickedFile != null) {
-        setState(() {
-          _loadingState = ImageLoadingState.initial;
-        });
-
         final bytes = await pickedFile.readAsBytes();
 
         // 現在のキャンバスサイズを取得
@@ -232,24 +209,14 @@ class _TestScreenState extends State<TestScreen> {
           bytes,
           width: canvasSize.width,
           height: canvasSize.height,
-          onProgress: (state) {
-            if (mounted) {
-              setState(() {
-                _loadingState = state;
-              });
-            }
-          },
         );
 
         setState(() {
           _currentData = jsonData;
-          _loadingState = null;
         });
       }
     } catch (e) {
-      setState(() {
-        _loadingState = null;
-      });
+      developer.log(e.toString());
     }
   }
 }

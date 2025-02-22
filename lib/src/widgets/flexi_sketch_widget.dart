@@ -1,4 +1,6 @@
-import 'package:flexi_sketch/src/utils/progress_handler.dart';
+import 'dart:developer' as developer;
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -29,6 +31,21 @@ class FlexiSketchWidget extends StatefulWidget {
   /// エラー発生時のコールバック
   final void Function(String message)? onError;
 
+  /// ツールバーの戻る/進むボタンを非表示にするかどうか
+  final bool hideUndoRedo;
+
+  /// ツールバーのクリアボタンを非表示にするかどうか
+  final bool hideClear;
+
+  /// ツールバーの画像アップロードボタンを非表示にするかどうか
+  final bool hideUpload;
+
+  /// ツールバーの画像貼り付けボタンを非表示にするかどうか
+  final bool hideImagePaste;
+
+  /// ツールバーの図形描画ボタンを非表示にするかどうか
+  final bool hideShapeDrawing;
+
   /// FlexiSketchウィジェットを作成します。
   ///
   /// [controller] は必須で、スケッチの状態管理を行います。
@@ -39,19 +56,38 @@ class FlexiSketchWidget extends StatefulWidget {
     this.onSaveAsData,
     this.data,
     this.onError,
+    this.hideUndoRedo = false,
+    this.hideClear = false,
+    this.hideUpload = false,
+    this.hideImagePaste = false,
+    this.hideShapeDrawing = false,
   });
 
   @override
   State<FlexiSketchWidget> createState() => FlexiSketchWidgetState();
 }
 
-class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandler {
+class FlexiSketchWidgetState extends State<FlexiSketchWidget> {
   // 保存処理用の進捗状態
   bool _isSaving = false;
-  double _saveProgress = 0.0;
 
   /// InfiniteCanvasへの参照
   final GlobalKey<InfiniteCanvasState> _canvasKey = GlobalKey<InfiniteCanvasState>();
+
+  /// `Toolbar` のウィジェットサイズを測定するために使用する `GlobalKey`
+  ///
+  /// このキーを使用して `Toolbar` の実際のサイズを取得し、画面内に収まるように位置を制限します。
+  final GlobalKey _toolbarKey = GlobalKey<ToolbarState>();
+
+  /// `Toolbar` の表示位置
+  ///
+  /// この値は画面サイズと `Toolbar` のサイズに基づいて制限されます。
+  Offset _toolbarPosition = Offset.zero;
+
+  /// `Toolbar` の実際のウィジェットサイズ
+  ///
+  /// `LayoutBuilder` と `PostFrameCallback` で測定された `Toolbar` の実際の幅と高さを保持します。
+  Size _toolbarSize = Size.zero;
 
   @override
   void initState() {
@@ -71,13 +107,14 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
 
   @override
   void dispose() {
-    // ProgressHandler の dispose を呼び出す
-    disposeProgress();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final Size screenSize = MediaQuery.of(context).size;
+    _initializeToolbarPosition(screenSize);
+
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.keyZ, control: true): widget.controller.undo,
@@ -106,48 +143,75 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
               ),
               // ツールバー
               Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Center(
-                  child: Toolbar(
-                    controller: widget.controller,
-                    onSaveAsImage: widget.onSaveAsImage != null
-                        ? (context, imageData) async {
-                            setState(() {
-                              _isSaving = true;
-                              _saveProgress = 0.0;
-                            });
+                left: _toolbarPosition.dx,
+                top: _toolbarPosition.dy,
+                child: LayoutBuilder(builder: (context, constraints) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final RenderBox? renderBox = _toolbarKey.currentContext?.findRenderObject() as RenderBox?;
+                    if (renderBox != null) {
+                      final Size size = renderBox.size;
+                      if (size != _toolbarSize) {
+                        setState(() {
+                          _toolbarSize = size;
+                          _adjustToolbarPosition(screenSize);
+                        });
+                      }
+                    }
+                  });
 
-                            try {
-                              await widget.onSaveAsImage!(context, imageData);
-                            } finally {
-                              setState(() {
-                                _isSaving = false;
-                              });
-                            }
-                          }
-                        : null,
-                    onSaveAsData: widget.onSaveAsData != null
-                        ? (context, jsonData, imageData, progress) async {
-                            setState(() {
-                              _isSaving = true;
-                              _saveProgress = progress;
-                            });
-
-                            try {
-                              await widget.onSaveAsData!(context, jsonData, imageData, progress);
-                            } finally {
-                              if (progress >= 1.0) {
+                  return GestureDetector(
+                    onPanUpdate: (details) {
+                      setState(() {
+                        _toolbarPosition += details.delta;
+                        // 画面外に出ないように制限
+                        _adjustToolbarPosition(screenSize);
+                      });
+                    },
+                    child: Container(
+                      key: _toolbarKey,
+                      child: Toolbar(
+                        controller: widget.controller,
+                        onSaveAsImage: widget.onSaveAsImage != null
+                            ? (context, imageData) async {
                                 setState(() {
-                                  _isSaving = false;
+                                  _isSaving = true;
                                 });
+
+                                try {
+                                  await widget.onSaveAsImage!(context, imageData);
+                                } finally {
+                                  setState(() {
+                                    _isSaving = false;
+                                  });
+                                }
                               }
-                            }
-                          }
-                        : null,
-                  ),
-                ),
+                            : null,
+                        onSaveAsData: widget.onSaveAsData != null
+                            ? (context, jsonData, imageData) async {
+                                setState(() {
+                                  _isSaving = true;
+                                });
+
+                                try {
+                                  await widget.onSaveAsData!(context, jsonData, imageData);
+                                } catch (e) {
+                                  developer.log(e.toString());
+                                } finally {
+                                  setState(() {
+                                    _isSaving = false;
+                                  });
+                                }
+                              }
+                            : null,
+                        hideUndoRedo: widget.hideUndoRedo,
+                        hideClear: widget.hideClear,
+                        hideUpload: widget.hideUpload,
+                        hideImagePaste: widget.hideImagePaste,
+                        hideShapeDrawing: widget.hideShapeDrawing,
+                      ),
+                    ),
+                  );
+                }),
               ),
               // 保存中のプログレスインジケーター
               if (_isSaving)
@@ -199,6 +263,50 @@ class FlexiSketchWidgetState extends State<FlexiSketchWidget> with ProgressHandl
       } catch (e) {
         widget.onError?.call('データの読み込みに失敗しました: $e');
       }
+    }
+  }
+
+  /// AppBarの高さを取得します
+  ///
+  /// 現在のコンテキストから `AppBar` の高さを取得します。
+  /// `AppBar` が存在しない場合は 0 を返します。
+  double _getAppBarHeight(BuildContext context) {
+    final ScaffoldState? scaffold = Scaffold.maybeOf(context);
+    if (scaffold == null) return 0;
+
+    final PreferredSizeWidget? appBar = scaffold.widget.appBar;
+    return appBar?.preferredSize.height ?? 0;
+  }
+
+  /// `Toolbar` の位置を画面内に収めるように調整します
+  ///
+  /// [screenSize] 現在の画面サイズ
+  ///
+  /// `Toolbar` の実際のサイズ、`AppBar` の高さ、および `SafeArea` の余白に基づいて、画面からはみ出さないように位置を制限します。
+  void _adjustToolbarPosition(Size screenSize) {
+    final double appBarHeight = _getAppBarHeight(context);
+
+    // FIXME: iOS だと下に見切れてしまうが、画面を有効活用できるので現時点では OK とする
+    _toolbarPosition = Offset(
+      _toolbarPosition.dx.clamp(0.01, screenSize.width - _toolbarSize.width), // 第1引数を0に設定すると左上に移動させたときに初期位置に戻されてしまう
+      _toolbarPosition.dy.clamp(0, screenSize.height - appBarHeight - _toolbarSize.height),
+    );
+  }
+
+  /// `Toolbar` の初期位置を画面中央下部に設定します
+  ///
+  /// [screenSize] 現在の画面サイズ
+  ///
+  /// `Toolbar` が未配置の場合（`_toolbarPosition == Offset.zero`）、画面の中央下部に配置します。
+  void _initializeToolbarPosition(Size screenSize) {
+    if (_toolbarPosition == Offset.zero) {
+      final double appBarHeight = _getAppBarHeight(context);
+      final ViewPadding padding = View.of(context).padding;
+
+      _toolbarPosition = Offset(
+        screenSize.width / 3,
+        screenSize.height - appBarHeight - padding.top - padding.bottom,
+      );
     }
   }
 }

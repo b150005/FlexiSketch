@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'dart:developer' as developer;
 
 import 'package:flexi_sketch/src/config/flexi_sketch_size_config.dart';
 import 'package:flexi_sketch/src/extensions/matrix4_extensions.dart';
@@ -14,15 +15,34 @@ import 'src/objects/drawable_object.dart';
 import 'src/objects/image_object.dart';
 import 'src/objects/path_object.dart';
 import 'src/objects/shape_object.dart';
+import 'src/objects/text_object.dart';
 import 'src/serialization/serializers/drawable_object_serializer.dart';
 import 'src/services/clipboard_service.dart';
 import 'src/storage/sketch_data.dart';
 import 'src/tools/drawing_tool.dart';
 import 'src/tools/shape_tool.dart';
 import 'src/utils/flexi_sketch_data_helper.dart';
+import 'src/utils/flexi_sketch_size_helper.dart';
 import 'src/widgets/icon_list_tile.dart';
+import 'src/widgets/text_input_dialog.dart';
 
 class FlexiSketchController extends ChangeNotifier {
+  /// コンテキスト
+  final BuildContext? context;
+
+  /// 画像オブジェクトを消しゴムの対象外とするかどうか
+  ///
+  /// `true` の場合、 `ImageObject` は消しゴムによって削除されません。
+  final bool preserveImages;
+
+  /// コンストラクタ
+  ///
+  /// [preserveImages] 画像オブジェクトを消しゴムの対象外とするかどうか（デフォルト: `false`)
+  FlexiSketchController({
+    this.context,
+    this.preserveImages = false,
+  });
+
   /// 選択中の描画ツール
   DrawingTool? _currentTool;
   DrawingTool? get currentTool => _currentTool;
@@ -42,7 +62,7 @@ class FlexiSketchController extends ChangeNotifier {
   Color get currentColor => _currentColor;
 
   /// 線の太さ
-  double _currentStrokeWidth = 2.0;
+  double _currentStrokeWidth = 8.0;
   double get currentStrokeWidth => _currentStrokeWidth;
 
   /// 描画中のパス(線)
@@ -73,6 +93,9 @@ class FlexiSketchController extends ChangeNotifier {
 
   /// 選択中のオブジェクトが画像かどうか
   bool get isImageSelected => _selectedObject is ImageObject;
+
+  /// 読み込んだJSONデータ
+  Map<String, dynamic>? _initialJson;
 
   /// 変形開始時の状態
   DrawableObject? _transformStartState;
@@ -114,6 +137,12 @@ class FlexiSketchController extends ChangeNotifier {
 
   /// 描画色を設定する
   void setColor(Color color) {
+    if (hasSelection) {
+      // 選択中のオブジェクトがある場合は、そのオブジェクトの色を変更
+      _updateSelectedObjectColor(color);
+    }
+
+    // 現在の描画色を更新（新規オブジェクト用）
     _currentColor = color;
     notifyListeners();
   }
@@ -280,13 +309,16 @@ class FlexiSketchController extends ChangeNotifier {
   /// 消しゴムを実行する
   void continueErasing(Offset point) {
     if (_currentPath != null) {
-      final localPoint = _currentPath!.globalToLocal(point);
+      final Offset localPoint = _currentPath!.globalToLocal(point);
       _currentPath!.addPoint(localPoint);
 
       // 変換済みのパスを使用して交差判定
-      if (_objects.any((obj) => obj.intersects(_currentPath!.getTransformedPath()))) {
+      if (_objects.any((obj) =>
+          // preserveImages が true の場合、 ImageObject は判定から除外
+          (!preserveImages || obj is! ImageObject) && obj.intersects(_currentPath!.getTransformedPath()))) {
         _addToHistory(HistoryEntryType.erase);
-        _objects.removeWhere((obj) => obj.intersects(_currentPath!.getTransformedPath()));
+        _objects.removeWhere(
+            (obj) => (!preserveImages || obj is! ImageObject) && obj.intersects(_currentPath!.getTransformedPath()));
       }
       notifyListeners();
     }
@@ -337,6 +369,63 @@ class FlexiSketchController extends ChangeNotifier {
     }
   }
 
+  /// テキスト入力を開始する
+  void startText(Offset point) async {
+    if (context == null) return;
+    // テキスト入力ダイアログを表示
+    final String? text = await showDialog<String>(
+      context: context!,
+      builder: (context) => const TextInputDialog(),
+    );
+
+    if (text != null && text.isNotEmpty) {
+      final paint = Paint()
+        ..color = _currentColor
+        ..strokeWidth = _currentStrokeWidth
+        ..style = PaintingStyle.fill;
+
+      final textObject = TextObject(
+        text: text,
+        globalCenter: point,
+        paint: paint,
+        fontSize: _currentStrokeWidth * 10, // フォントサイズは線の太さに比例
+      );
+
+      // テキスト入力時は TextObject を選択状態にする
+      selectObject(textObject);
+
+      _addToHistory(HistoryEntryType.draw);
+      _objects.add(textObject);
+
+      // テキスト入力後はテキストツールの選択を解除する(内部で notifyListeners() が呼び出される)
+      setTool(null);
+    }
+  }
+
+  /// テキストオブジェクトを編集する
+  Future<void> editText(TextObject textObject) async {
+    if (context == null) return;
+
+    // テキスト入力ダイアログを表示
+    final String? newText = await showDialog<String>(
+      context: context!,
+      builder: (context) => TextInputDialog(
+        initialText: textObject.text,
+        submitLabel: '更新',
+      ),
+    );
+
+    if (newText != null && newText.isNotEmpty && newText != textObject.text) {
+      // 変更前の状態を履歴に追加
+      _addToHistory(HistoryEntryType.transform);
+
+      // テキストを更新
+      textObject.text = newText;
+
+      notifyListeners();
+    }
+  }
+
   /// 指定された点にある描画オブジェクトを取得する
   ///
   /// [point] 判定する点の座標
@@ -352,7 +441,7 @@ class FlexiSketchController extends ChangeNotifier {
   }
 
   /// オブジェクトを選択する
-  void selectObject(Offset point) {
+  void selectObjectAtPoint(Offset point) {
     // 選択済みオブジェクトがあればその選択状態を解除
     clearSelection();
 
@@ -360,6 +449,17 @@ class FlexiSketchController extends ChangeNotifier {
     if (_currentTool != null) return;
 
     _selectedObject = hitTest(point);
+    _selectedObject?.isSelected = true;
+
+    notifyListeners();
+  }
+
+  /// オブジェクトを選択する
+  void selectObject(DrawableObject object) {
+    // 選択済みオブジェクトがあればその選択状態を解除
+    clearSelection();
+
+    _selectedObject = object;
     _selectedObject?.isSelected = true;
 
     notifyListeners();
@@ -377,11 +477,33 @@ class FlexiSketchController extends ChangeNotifier {
   /// 選択中のオブジェクトを削除する
   void deleteSelectedObject() {
     if (_selectedObject != null) {
+      if (_selectedObject is ImageObject && preserveImages) return;
       _addToHistory(HistoryEntryType.delete);
       _objects.remove(_selectedObject);
       _selectedObject = null;
       notifyListeners();
     }
+  }
+
+  /// 選択中のオブジェクトの色を変更する
+  void _updateSelectedObjectColor(Color color) {
+    if (_selectedObject == null) return;
+
+    // 履歴に追加
+    _addToHistory(HistoryEntryType.transform);
+
+    if (_selectedObject is PathObject) {
+      final pathObj = _selectedObject as PathObject;
+      pathObj.paint.color = color;
+    } else if (_selectedObject is ShapeObject) {
+      final shapeObj = _selectedObject as ShapeObject;
+      shapeObj.paint.color = color;
+    } else if (_selectedObject is TextObject) {
+      final textObj = _selectedObject as TextObject;
+      textObj.paint.color = color;
+    }
+
+    notifyListeners();
   }
 
   /// 変形操作を開始する
@@ -454,9 +576,6 @@ class FlexiSketchController extends ChangeNotifier {
       final XFile? pickedFile = await (source != null
           ? picker.pickImage(
               source: source,
-              imageQuality: 80,
-              maxWidth: 1920,
-              maxHeight: 1920,
             )
           : picker.pickImage(source: ImageSource.gallery));
 
@@ -614,22 +733,43 @@ class FlexiSketchController extends ChangeNotifier {
   Future<void> addImageFromBytes(
     Uint8List imageData, {
     FlexiSketchSizeConfig config = FlexiSketchSizeConfig.defaultConfig,
+    bool addHistory = true,
   }) async {
     try {
-      // 画像オブジェクトの生成
-      final (imageObject, _) = await FlexiSketchDataHelper.createImageObjectFromBytes(
-        imageData,
-        config: config,
-        canvasSize: _canvasSize,
+      // 画像をデコード
+      final ui.Image decodedImage = await FlexiSketchDataHelper.decodeImageFromBytes(imageData);
+
+      // 画像の元サイズを使用（リサイズしない）
+      final Size imageSize = Size(
+        decodedImage.width.toDouble(),
+        decodedImage.height.toDouble(),
+      );
+
+      // キャンバスサイズの更新（必要に応じて）
+      final Size effectiveCanvasSize = _canvasSize ??
+          FlexiSketchSizeHelper.calculateCanvasSize(
+            imageSize: imageSize,
+            config: config,
+          );
+
+      // 画像オブジェクトを生成（元のサイズを維持）
+      final ImageObject imageObject = FlexiSketchDataHelper.createImageObject(
+        image: decodedImage,
+        center: FlexiSketchDataHelper.getCanvasCenter(effectiveCanvasSize),
+        size: imageSize, // 元のサイズを使用
       );
 
       // 履歴に追加して画像を配置
-      _addToHistory(HistoryEntryType.paste);
+      if (addHistory) {
+        _addToHistory(HistoryEntryType.paste);
+      }
       _objects.add(imageObject);
 
+      // InfiniteCanvasの初期ズームを設定するためのイベントを発火
       notifyListeners();
     } catch (e) {
       _notifyError('画像の追加中にエラーが発生しました: $e');
+      developer.log('データの読み込みに失敗しました: $e');
       rethrow;
     }
   }
@@ -641,14 +781,10 @@ class FlexiSketchController extends ChangeNotifier {
   /// 画像データを含む場合は UI スレッドのブロッキングが発生します
   Future<Map<String, dynamic>> generateJsonData([
     SketchMetadata? metadata,
-    void Function(double progress)? onProgress,
   ]) async {
     try {
-      onProgress?.call(0.01);
-
-      final totalObjects = _objects.length;
+      final int totalObjects = _objects.length;
       if (totalObjects == 0) {
-        onProgress?.call(1.0);
         return {
           'metadata': metadata?.toJson() ?? SketchMetadata.create('Untitled Sketch').toJson(),
           'content': {
@@ -663,20 +799,15 @@ class FlexiSketchController extends ChangeNotifier {
       }
 
       // 各オブジェクトのシリアライズを個別に実行して進捗を監視
-      final serializedObjects = <Map<String, dynamic>>[];
-      var completedObjects = 0;
+      final List<Map<String, dynamic>> serializedObjects = <Map<String, dynamic>>[];
 
       // オブジェクトごとに順次シリアライズ
-      for (final object in _objects) {
-        final json = await DrawableObjectSerializer.instance.toJson(object);
+      for (final DrawableObject object in _objects) {
+        final Map<String, dynamic> json = await DrawableObjectSerializer.instance.toJson(object);
         serializedObjects.add(json);
-
-        completedObjects++;
-        final progress = completedObjects / totalObjects;
-        onProgress?.call(progress);
       }
 
-      final content = {
+      final Map<String, Object> content = {
         'version': 1,
         'canvas': {
           'width': _canvasSize?.width ?? 0,
@@ -701,57 +832,42 @@ class FlexiSketchController extends ChangeNotifier {
 
     try {
       // コンテンツの範囲を計算（マージン付き）
-      final contentBounds = _calculateContentBounds();
-
-      // 固定の高解像度スケール係数を設定
-      const highResolutionScale = 8.0;
+      final Rect contentBounds = _calculateContentBounds();
 
       // 描画用のPictureRecorderを作成
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-
-      // 高解像度に対応するためのスケール設定
-      final scaledWidth = (contentBounds.width * highResolutionScale).round();
-      final scaledHeight = (contentBounds.height * highResolutionScale).round();
-      canvas.scale(highResolutionScale, highResolutionScale);
+      final ui.PictureRecorder recorder = ui.PictureRecorder();
+      final Canvas canvas = Canvas(recorder);
 
       // 背景を描画（白色）
       canvas.drawRect(
-          Offset.zero & contentBounds.size,
-          Paint()
-            ..color = Colors.white
-            ..isAntiAlias = true);
+        Offset.zero & contentBounds.size,
+        Paint()..color = Colors.white,
+      );
 
       // コンテンツの位置を調整
       canvas.translate(-contentBounds.left, -contentBounds.top);
 
-      // すべてのオブジェクトを描画（アンチエイリアス有効）
+      // すべてのオブジェクトを描画
       for (final object in _objects) {
-        // オブジェクトの Paint 設定を一時的に上書き
-        if (object is PathObject) {
-          object.paint.isAntiAlias = true;
-        }
         object.draw(canvas);
       }
 
       // 描画中のオブジェクトがあれば描画
       if (_currentPath != null) {
-        _currentPath!.paint.isAntiAlias = true;
         _currentPath!.draw(canvas);
       }
       if (_currentShape != null) {
-        _currentShape!.paint.isAntiAlias = true;
         _currentShape!.draw(canvas);
       }
 
       // Pictureを完成させる
-      final picture = recorder.endRecording();
+      final ui.Picture picture = recorder.endRecording();
 
       // より高解像度の画像に変換
-      final image = await picture.toImage(scaledWidth, scaledHeight);
+      final ui.Image image = await picture.toImage(contentBounds.width.round(), contentBounds.height.round());
 
       // PNG形式でエンコード（可能な限り高品質に設定）
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) {
         throw const ImageGenerationError('Failed to convert image to byte data');
       }
@@ -779,7 +895,7 @@ class FlexiSketchController extends ChangeNotifier {
 
     // 全オブジェクトのバウンディングボックスを統合
     Rect bounds = _objects.first.bounds;
-    for (final object in _objects.skip(1)) {
+    for (final DrawableObject object in _objects.skip(1)) {
       bounds = bounds.expandToInclude(object.bounds);
     }
 
@@ -809,16 +925,19 @@ class FlexiSketchController extends ChangeNotifier {
     try {
       _objects.clear();
 
+      // JSONデータを保存（calculateInitialTransformで使用）
+      _initialJson = json;
+
       // キャンバスサイズの復元
-      final canvas = json['canvas'] as Map<String, dynamic>;
+      final Map<String, dynamic> canvas = json['canvas'] as Map<String, dynamic>;
       _canvasSize = Size(
         (canvas['width'] as num).toDouble(),
         (canvas['height'] as num).toDouble(),
       );
 
       // オブジェクトの復元
-      final serializedObjects = json['objects'] as List<dynamic>;
-      final deserializedObjects = await Future.wait(
+      final List<dynamic> serializedObjects = json['objects'] as List<dynamic>;
+      final List<DrawableObject> deserializedObjects = await Future.wait(
         serializedObjects.map((obj) => DrawableObjectSerializer.instance.fromJson(obj as Map<String, dynamic>)),
       );
 
@@ -830,6 +949,7 @@ class FlexiSketchController extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
+      developer.log('データの読み込みに失敗しました: $e');
       _notifyError('データの読み込みに失敗しました: $e');
       rethrow;
     }
@@ -839,25 +959,44 @@ class FlexiSketchController extends ChangeNotifier {
   Matrix4? calculateInitialTransform(Size viewportSize) {
     if (_objects.isEmpty || _canvasSize == null) return null;
 
+    // 初期変換情報がある場合はそれを使用
+    if (_initialJson != null &&
+        _initialJson!['content'] is Map<String, dynamic> &&
+        _initialJson!['content']['initialTransform'] is Map<String, dynamic>) {
+      final transform = _initialJson!['content']['initialTransform'] as Map<String, dynamic>;
+
+      final double scale = transform['scale'] as double;
+      final double centerX = transform['centerX'] as double;
+      final double centerY = transform['centerY'] as double;
+
+      // 変換行列を作成
+      final Matrix4 result = Matrix4.identity();
+      result.translate(centerX, centerY);
+      result.scale(scale);
+      result.translate(-centerX, -centerY);
+
+      return result;
+    }
+
     // 全オブジェクトのバウンディングボックスを計算
     Rect contentBounds = _objects.first.bounds;
-    for (final object in _objects.skip(1)) {
+    for (final DrawableObject object in _objects.skip(1)) {
       contentBounds = contentBounds.expandToInclude(object.bounds);
     }
 
     // コンテンツと画面の両方のアスペクト比を計算
-    final contentAspectRatio = contentBounds.width / contentBounds.height;
-    final viewportAspectRatio = viewportSize.width / viewportSize.height;
+    final double contentAspectRatio = contentBounds.width / contentBounds.height;
+    final double viewportAspectRatio = viewportSize.width / viewportSize.height;
 
     // スケールを計算（幅と高さの両方に20pxのパディングを考慮）
-    final scaleX = (viewportSize.width - 40) / contentBounds.width;
-    final scaleY = (viewportSize.height - 40) / contentBounds.height;
+    final double scaleX = (viewportSize.width - 40) / contentBounds.width;
+    final double scaleY = (viewportSize.height - 40) / contentBounds.height;
 
     // アスペクト比を維持しながら、最適なスケールを選択
-    final scaleFactor = contentAspectRatio > viewportAspectRatio ? scaleX : scaleY;
+    final double scaleFactor = contentAspectRatio > viewportAspectRatio ? scaleX : scaleY;
 
     // 変換行列を作成
-    final result = Matrix4.identity();
+    final Matrix4 result = Matrix4.identity();
     result.setScaleAndCenter(scaleFactor, contentBounds.center, viewportSize);
 
     return result;

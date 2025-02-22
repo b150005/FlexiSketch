@@ -14,10 +14,10 @@ class ImageObjectSerializer implements ObjectSerializer<ImageObject> {
 
   @override
   Future<ImageObject> fromJson(Map<String, dynamic> json) async {
-    final imageData = json['image'] as Map<String, dynamic>;
-    final encodedData = imageData['data'] as String;
+    final Map<String, dynamic> imageData = json['image'] as Map<String, dynamic>;
+    final String encodedData = imageData['data'] as String;
 
-    final size = Size(
+    final Size size = Size(
       (imageData['size']['width'] as num).toDouble(),
       (imageData['size']['height'] as num).toDouble(),
     );
@@ -34,7 +34,7 @@ class ImageObjectSerializer implements ObjectSerializer<ImageObject> {
 
   @override
   Future<Map<String, dynamic>> toJson(ImageObject object) async {
-    final encodedData = await ImageUtils.encodeImageToBase64(object.image);
+    final String encodedData = await ImageUtils.encodeImageToBase64(object.image);
 
     return {
       'image': {

@@ -28,12 +28,12 @@ class FlexiSketchSizeHelper {
     FlexiSketchSizeConfig config = FlexiSketchSizeConfig.defaultConfig,
   }) {
     // キャンバスの使用可能な最大領域を計算
-    final maxWidth = canvasSize.width * config.canvasUsableRatio;
-    final maxHeight = canvasSize.height * config.canvasUsableRatio;
+    final double maxWidth = canvasSize.width * config.canvasUsableRatio;
+    final double maxHeight = canvasSize.height * config.canvasUsableRatio;
 
     // 画像のアスペクト比を計算
-    final aspectRatio = calculateAspectRatio(imageSize);
-    final maxAreaAspectRatio = calculateAspectRatio(Size(maxWidth, maxHeight));
+    final double aspectRatio = calculateAspectRatio(imageSize);
+    final double maxAreaAspectRatio = calculateAspectRatio(Size(maxWidth, maxHeight));
 
     // 使用可能領域に収まるようにアスペクト比を維持しながらサイズを計算
     double width;
@@ -61,7 +61,7 @@ class FlexiSketchSizeHelper {
     required Size imageSize,
     FlexiSketchSizeConfig config = FlexiSketchSizeConfig.defaultConfig,
   }) {
-    final margin = config.minimumMargin * 2;
+    final double margin = config.minimumMargin * 2;
     return Size(
       imageSize.width / config.canvasUsableRatio + margin,
       imageSize.height / config.canvasUsableRatio + margin,

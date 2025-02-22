@@ -3,6 +3,7 @@ import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import '../../flexi_sketch_controller.dart';
 import '../objects/drawable_object.dart';
+import '../objects/text_object.dart';
 
 /// CanvasPainterクラスは、キャンバス上に描画を行うためのカスタムペインターです。
 ///
@@ -19,36 +20,61 @@ class CanvasPainter extends CustomPainter {
   final double handleSize;
 
   /// 選択枠の色
-  static const selectionBorderColor = Colors.lightBlue;
+  static const Color selectionBorderColor = Colors.lightBlue;
 
   /// 選択ハンドルの枠線色
-  static const handleBorderColor = Colors.lightBlue;
+  static const Color handleBorderColor = Colors.lightBlue;
 
   /// 選択ハンドルの背景色
-  static const handleFillColor = Colors.white;
+  static const Color handleFillColor = Colors.white;
 
   /// 削除ハンドルの色
-  static const deleteHandleColor = Colors.red;
+  static const Color deleteHandleColor = Colors.red;
+
+  /// 編集ハンドルの色
+  static const Color editHandleColor = Colors.lightBlue;
 
   /// 選択枠の線幅
-  static const selectionBorderWidth = 2.0;
+  static const double selectionBorderWidth = 2.0;
 
   /// ハンドル枠の線幅
-  static const handleBorderWidth = 2.0;
+  static const double handleBorderWidth = 2.0;
 
   /// 選択枠のダッシュパターン
-  static const dashPattern = <double>[5, 5];
+  static const List<double> dashPattern = <double>[5, 5];
+
+  /// デバッグモードのフラグ
+  final bool debugMode;
+
+  /// (デバッグ用) グリッド線に表示するテキストの文字色
+  static const Color _debugTextColor = Colors.black87;
+
+  /// (デバッグ用) グリッド線に表示するテキストのフォントサイズ
+  static const double _debugTextSize = 10.0;
+
+  /// (デバッグ用) グリッド線に表示するテキストのパディング
+  static const double _debugTextPadding = 2.0;
+
+  /// (デバッグ用) グリッド線に表示するグローバル座標の間隔
+  static const double _debugCoordinateInterval = 100.0;
 
   /// コンストラクタ
   ///
   /// [controller] 描画を管理するコントローラ
   /// [transform] 描画に適用する変換行列
   /// [handleSize] オブジェクト操作ハンドルのサイズ(デフォルト: `12.0`)
-  CanvasPainter({required this.controller, required this.transform, this.handleSize = 12.0})
-      : super(repaint: controller);
+  CanvasPainter({
+    required this.controller,
+    required this.transform,
+    this.handleSize = 12.0,
+    this.debugMode = false,
+  }) : super(repaint: controller);
 
   @override
   void paint(Canvas canvas, Size size) {
+    // 現在のスケールに基づいて実際のハンドルサイズを計算
+    final double effectiveHandleSize = _calculateHandleSize(handleSize, transform);
+
     // 現在のキャンバスの状態を保存
     canvas.save();
     // 変換行列を適用
@@ -60,6 +86,11 @@ class CanvasPainter extends CustomPainter {
     // グリッドを描画
     _drawGrid(canvas, visibleRect);
 
+    // デバッグモードが有効な場合は座標を描画
+    if (debugMode) {
+      _drawDebugCoordinates(canvas, visibleRect);
+    }
+
     // すべてのオブジェクトを描画
     for (var object in controller.objects) {
       if (_isObjectVisible(object, visibleRect)) {
@@ -67,7 +98,12 @@ class CanvasPainter extends CustomPainter {
 
         // 選択状態のオブジェクトは選択時 UI (枠線・ハンドル)を描画
         if (object.isSelected) {
-          _drawSelectionUI(canvas, object);
+          _drawSelectionUI(
+            canvas,
+            object,
+            handleSize: effectiveHandleSize,
+            showDeleteHandle: !controller.preserveImages,
+          );
         }
       }
     }
@@ -103,11 +139,20 @@ class CanvasPainter extends CustomPainter {
     // 変換行列の逆行列を計算
     final Matrix4 inverseTransform = Matrix4.inverted(transform);
 
-    final topLeft = inverseTransform.transform3(Vector3(0, 0, 0));
-    final bottomRight = inverseTransform.transform3(Vector3(size.width, size.height, 0));
+    final Vector3 topLeft = inverseTransform.transform3(Vector3(0, 0, 0));
+    final Vector3 bottomRight = inverseTransform.transform3(Vector3(size.width, size.height, 0));
 
     // 矩形を作成
     return Rect.fromPoints(Offset(topLeft.x, topLeft.y), Offset(bottomRight.x, bottomRight.y));
+  }
+
+  /// 実際のハンドルサイズを計算する
+  ///
+  /// [baseSize] 基準となるハンドルサイズ
+  /// [transform] 現在の変換行列
+  double _calculateHandleSize(double baseSize, Matrix4 transform) {
+    final double scale = transform.getMaxScaleOnAxis();
+    return baseSize / scale;
   }
 
   /// グリッドを描画する
@@ -115,15 +160,15 @@ class CanvasPainter extends CustomPainter {
   /// このメソッドは、指定された可視領域内にグリッドを描画します。
   /// グリッドのサイズは固定されており、指定された色と透明度で描画されます。
   void _drawGrid(Canvas canvas, Rect visibleRect) {
-    final paint = Paint()
+    final Paint paint = Paint()
       ..color = Colors.grey.withValues(alpha: 0.5) // グリッドの色と透明度
       ..strokeWidth = 0.5; // グリッドの線の太さ
 
-    const gridSize = 20.0;
-    final startX = (visibleRect.left / gridSize).floor() * gridSize; // グリッドの開始X座標
-    final endX = (visibleRect.right / gridSize).ceil() * gridSize; // グリッドの終了X座標
-    final startY = (visibleRect.top / gridSize).floor() * gridSize; // グリッドの開始Y座標
-    final endY = (visibleRect.bottom / gridSize).ceil() * gridSize; // グリッドの終了Y座標
+    const double gridSize = 20.0;
+    final double startX = (visibleRect.left / gridSize).floor() * gridSize; // グリッドの開始X座標
+    final double endX = (visibleRect.right / gridSize).ceil() * gridSize; // グリッドの終了X座標
+    final double startY = (visibleRect.top / gridSize).floor() * gridSize; // グリッドの開始Y座標
+    final double endY = (visibleRect.bottom / gridSize).ceil() * gridSize; // グリッドの終了Y座標
 
     // 縦のグリッドラインを描画
     for (double x = startX; x <= endX; x += gridSize) {
@@ -133,6 +178,61 @@ class CanvasPainter extends CustomPainter {
     // 横のグリッドラインを描画
     for (double y = startY; y <= endY; y += gridSize) {
       canvas.drawLine(Offset(visibleRect.left, y), Offset(visibleRect.right, y), paint);
+    }
+  }
+
+  /// デバッグ用の座標を描画する
+  void _drawDebugCoordinates(Canvas canvas, Rect visibleRect) {
+    final TextPainter textPainter = TextPainter(
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    );
+
+    // X軸の座標を描画（上部）
+    final double startX = (visibleRect.left / _debugCoordinateInterval).floor() * _debugCoordinateInterval;
+    final double endX = (visibleRect.right / _debugCoordinateInterval).ceil() * _debugCoordinateInterval;
+
+    for (double x = startX; x <= endX; x += _debugCoordinateInterval) {
+      final String text = x.toStringAsFixed(0);
+      textPainter.text = TextSpan(
+        text: text,
+        style: TextStyle(
+          color: _debugTextColor,
+          fontSize: _debugTextSize,
+        ),
+      );
+      textPainter.layout();
+
+      // テキストを描画
+      textPainter.paint(
+        canvas,
+        Offset(x - textPainter.width / 2, visibleRect.top + _debugTextPadding),
+      );
+    }
+
+    // Y軸の座標を描画（右側）
+    final double startY = (visibleRect.top / _debugCoordinateInterval).floor() * _debugCoordinateInterval;
+    final double endY = (visibleRect.bottom / _debugCoordinateInterval).ceil() * _debugCoordinateInterval;
+
+    for (double y = startY; y <= endY; y += _debugCoordinateInterval) {
+      final String text = y.toStringAsFixed(0);
+      textPainter.text = TextSpan(
+        text: text,
+        style: TextStyle(
+          color: _debugTextColor,
+          fontSize: _debugTextSize,
+        ),
+      );
+      textPainter.layout();
+
+      // テキストを描画
+      textPainter.paint(
+        canvas,
+        Offset(
+          visibleRect.right - textPainter.width - _debugTextPadding,
+          y - textPainter.height / 2,
+        ),
+      );
     }
   }
 
@@ -152,16 +252,26 @@ class CanvasPainter extends CustomPainter {
   ///
   /// [canvas] 描画対象のキャンバス
   /// [object] 選択されたオブジェクト
-  void _drawSelectionUI(Canvas canvas, DrawableObject object) {
-    final bounds = object.bounds;
+  void _drawSelectionUI(
+    Canvas canvas,
+    DrawableObject object, {
+    required double handleSize,
+    bool showDeleteHandle = true,
+  }) {
+    final Rect bounds = object.bounds;
 
     // 選択枠を描画
     _drawSelectionBorder(canvas, bounds);
 
     // 各種ハンドルを描画
-    _drawCornerHandles(canvas, bounds); // 四隅の拡大・縮小ハンドル
-    _drawRotationHandle(canvas, bounds); // 回転ハンドル
-    _drawDeleteHandle(canvas, bounds); // 削除ハンドル
+    _drawCornerHandles(canvas, bounds, handleSize); // 四隅の拡大・縮小ハンドル
+    _drawRotationHandle(canvas, bounds, handleSize); // 回転ハンドル
+    if (showDeleteHandle) _drawDeleteHandle(canvas, bounds, handleSize); // 削除ハンドル
+
+    // TextObjectの場合は編集ハンドルを追加
+    if (object is TextObject) {
+      _drawEditHandle(canvas, bounds, handleSize);
+    }
   }
 
   /// 選択枠を描画する
@@ -169,15 +279,15 @@ class CanvasPainter extends CustomPainter {
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
   void _drawSelectionBorder(Canvas canvas, Rect bounds) {
-    final paint = Paint()
+    final Paint paint = Paint()
       ..color = selectionBorderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = selectionBorderWidth;
 
     // 点線のパスを作成
-    final path = Path();
-    var start = bounds.topLeft;
-    var current = start;
+    final Path path = Path();
+    Offset start = bounds.topLeft;
+    Offset current = start;
 
     for (final point in [
       bounds.topRight,
@@ -199,15 +309,15 @@ class CanvasPainter extends CustomPainter {
   /// [end] 終了点
   /// [pattern] 点線のパターン(実戦と空白の長さの配列)
   void _addDashedLine(Path path, Offset start, Offset end, List<double> pattern) {
-    final dx = end.dx - start.dx;
-    final dy = end.dy - start.dy;
-    final distance = (end - start).distance;
-    final steps = pattern.reduce((a, b) => a + b);
-    final count = (distance / steps).ceil();
+    final double dx = end.dx - start.dx;
+    final double dy = end.dy - start.dy;
+    final double distance = (end - start).distance;
+    final double steps = pattern.reduce((a, b) => a + b);
+    final int count = (distance / steps).ceil();
 
-    var x = start.dx;
-    var y = start.dy;
-    var drawn = true;
+    double x = start.dx;
+    double y = start.dy;
+    bool drawn = true;
 
     path.moveTo(start.dx, start.dy);
 
@@ -230,12 +340,12 @@ class CanvasPainter extends CustomPainter {
   ///
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
-  void _drawCornerHandles(Canvas canvas, Rect bounds) {
-    final handlePaint = Paint()
+  void _drawCornerHandles(Canvas canvas, Rect bounds, double handleSize) {
+    final Paint handlePaint = Paint()
       ..color = handleFillColor
       ..style = PaintingStyle.fill;
 
-    final handleBorderPaint = Paint()
+    final Paint handleBorderPaint = Paint()
       ..color = handleBorderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = handleBorderWidth;
@@ -256,43 +366,150 @@ class CanvasPainter extends CustomPainter {
   ///
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
-  void _drawRotationHandle(Canvas canvas, Rect bounds) {
-    final handlePaint = Paint()
+  void _drawRotationHandle(Canvas canvas, Rect bounds, double handleSize) {
+    // 視認性を高めるため、拡大・縮小ハンドルより大きいサイズにする
+    final double effectiveHandleSize = handleSize * 1.5;
+
+    final Paint handlePaint = Paint()
       ..color = handleFillColor
       ..style = PaintingStyle.fill;
 
-    final handleBorderPaint = Paint()
+    final Paint handleBorderPaint = Paint()
       ..color = handleBorderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = handleBorderWidth;
 
-    final rotationHandle = Offset(bounds.center.dx, bounds.top - 20);
+    final Offset rotateHandle = Offset(bounds.center.dx, bounds.top - 20);
+    final Offset rotateHandleBottom = Offset(rotateHandle.dx, rotateHandle.dy + 12);
 
+    // ベースとなる円を描画
     canvas
-      ..drawCircle(rotationHandle, handleSize / 2, handlePaint)
-      ..drawCircle(rotationHandle, handleSize / 2, handleBorderPaint)
-      ..drawLine(Offset(bounds.center.dx, bounds.top), rotationHandle, handleBorderPaint);
+      ..drawCircle(rotateHandle, effectiveHandleSize / 2, handlePaint)
+      ..drawCircle(rotateHandle, effectiveHandleSize / 2, handleBorderPaint)
+      ..drawLine(bounds.topCenter, rotateHandleBottom, handleBorderPaint);
+
+    // 回転アイコンを描画
+    final IconData rotateIcon = Icons.rotate_right;
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(rotateIcon.codePoint),
+        style: TextStyle(
+          fontSize: effectiveHandleSize * 0.8,
+          fontFamily: rotateIcon.fontFamily,
+          color: handleBorderColor,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        rotateHandle.dx - textPainter.width / 2,
+        rotateHandle.dy - textPainter.height / 2,
+      ),
+    );
   }
 
   /// 削除ハンドルを描画する
   ///
   /// [canvas] 描画対象のキャンバス
   /// [bounds] オブジェクトのバウンディングボックス
-  void _drawDeleteHandle(Canvas canvas, Rect bounds) {
-    final handlePaint = Paint()
+  void _drawDeleteHandle(Canvas canvas, Rect bounds, double handleSize) {
+    // 視認性を高めるため、拡大・縮小ハンドルより大きいサイズにする
+    final double effectiveHandleSize = handleSize * 1.5;
+
+    final Paint handlePaint = Paint()
       ..color = deleteHandleColor
       ..style = PaintingStyle.fill;
 
-    final handleBorderPaint = Paint()
+    final Paint handleBorderPaint = Paint()
       ..color = handleBorderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = handleBorderWidth;
 
-    final deleteHandle = Offset(bounds.center.dx, bounds.bottom + 20);
+    final Offset deleteHandle = Offset(bounds.center.dx, bounds.bottom + 20);
+    final Offset deleteHandleTop = Offset(deleteHandle.dx, deleteHandle.dy - 12);
 
+    // ベースとなる円を描画
     canvas
-      ..drawCircle(deleteHandle, handleSize / 2, handlePaint)
-      ..drawCircle(deleteHandle, handleSize / 2, handleBorderPaint)
-      ..drawLine(Offset(bounds.center.dx, bounds.bottom), deleteHandle, handleBorderPaint);
+      ..drawCircle(deleteHandle, effectiveHandleSize / 2, handlePaint)
+      ..drawCircle(deleteHandle, effectiveHandleSize / 2, handleBorderPaint)
+      ..drawLine(bounds.bottomCenter, deleteHandleTop, handleBorderPaint);
+
+    // 削除アイコンを描画
+    final IconData deleteIcon = Icons.delete_outline;
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(deleteIcon.codePoint),
+        style: TextStyle(
+          fontSize: effectiveHandleSize * 0.8,
+          fontFamily: deleteIcon.fontFamily,
+          color: Colors.white,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        deleteHandle.dx - textPainter.width / 2,
+        deleteHandle.dy - textPainter.height / 2,
+      ),
+    );
+  }
+
+  /// テキスト編集ハンドルを描画する
+  ///
+  /// [canvas] 描画対象のキャンバス
+  /// [bounds] オブジェクトのバウンディングボックス
+  void _drawEditHandle(Canvas canvas, Rect bounds, double handleSize) {
+    // 視認性を高めるため、拡大・縮小ハンドルより大きいサイズにする
+    final double effectiveHandleSize = handleSize * 1.5;
+
+    final Paint handlePaint = Paint()
+      ..color = handleFillColor
+      ..style = PaintingStyle.fill;
+
+    final Paint handleBorderPaint = Paint()
+      ..color = editHandleColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = handleBorderWidth;
+
+    // 編集ハンドルの位置（右中央に配置）
+    final Offset editHandle = Offset(bounds.right + 20, bounds.center.dy);
+    final Offset editHandleLeft = Offset(editHandle.dx - 12, editHandle.dy);
+
+    // ベースとなる円を描画
+    canvas
+      ..drawCircle(editHandle, effectiveHandleSize / 2, handlePaint)
+      ..drawCircle(editHandle, effectiveHandleSize / 2, handleBorderPaint)
+      ..drawLine(bounds.centerRight, editHandleLeft, handleBorderPaint);
+
+    // 編集アイコンを描画
+    final IconData editIcon = Icons.edit;
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(editIcon.codePoint),
+        style: TextStyle(
+          fontSize: effectiveHandleSize * 0.8,
+          fontFamily: editIcon.fontFamily,
+          color: editHandleColor,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        editHandle.dx - textPainter.width / 2,
+        editHandle.dy - textPainter.height / 2,
+      ),
+    );
   }
 }

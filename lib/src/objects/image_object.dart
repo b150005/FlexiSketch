@@ -48,22 +48,22 @@ class ImageObject extends DrawableObject {
 
   @override
   void drawObject(Canvas canvas) {
-    final srcRect = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
-    final dstRect = Rect.fromCenter(
+    final Rect source = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    final Rect destination = Rect.fromCenter(
       center: Offset.zero,
       width: _size.width,
       height: _size.height,
     );
 
-    canvas.drawImageRect(image, srcRect, dstRect, paint);
+    canvas.drawImageRect(image, source, destination, paint);
   }
 
   @override
   bool checkIntersection(Path other) {
     // 画像は矩形として交差判定
-    final imagePath = Path()..addRect(bounds);
+    final Path imagePath = Path()..addRect(bounds);
     try {
-      final intersectionPath = Path.combine(
+      final Path intersectionPath = Path.combine(
         PathOperation.intersect,
         imagePath,
         other,
@@ -83,7 +83,7 @@ class ImageObject extends DrawableObject {
 
   @override
   ImageObject clone() {
-    final clonedPaint = Paint()
+    final Paint clonedPaint = Paint()
       ..color = paint.color
       ..strokeWidth = paint.strokeWidth
       ..style = paint.style
@@ -91,8 +91,8 @@ class ImageObject extends DrawableObject {
       ..strokeJoin = paint.strokeJoin
       ..blendMode = paint.blendMode;
 
-    final clone = ImageObject(
-      image: image, // 画像データは同じものを参照（共有）
+    final ImageObject clone = ImageObject(
+      image: image,
       globalCenter: globalCenter,
       size: _size,
       paint: clonedPaint,

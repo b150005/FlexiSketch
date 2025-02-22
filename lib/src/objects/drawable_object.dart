@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../serialization/object_serializer.dart';
-import '../serialization/serializer.dart';
 
 /// 描画可能なオブジェクトの基底クラス
 ///
@@ -118,60 +117,13 @@ abstract class DrawableObject implements Serializable {
   /// オブジェクト選択時に呼び出され、枠線と各種操作(移動、回転、削除、拡大・縮小)用のハンドルを描画します。
   void _drawSelectionUI(Canvas canvas) {
     // 変換済みのバウンディングボックスを取得
-    final rect = bounds;
-    final borderPaint = Paint()
+    final Rect rect = bounds;
+    final Paint borderPaint = Paint()
       ..color = Colors.lightBlue
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
     canvas.drawRect(rect, borderPaint);
-    _drawHandles(canvas, rect);
-  }
-
-  /// 各種操作用ハンドルの描画
-  ///
-  /// [canvas] 描画対象のキャンバス
-  /// [rect] 配置対象の矩形
-  void _drawHandles(Canvas canvas, Rect rect) {
-    final handlePaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    final handleBorderPaint = Paint()
-      ..color = Colors.lightBlue
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-
-    final corners = [
-      rect.topLeft,
-      rect.topRight,
-      rect.bottomLeft,
-      rect.bottomRight,
-    ];
-
-    // 四隅に配置する拡大・縮小ハンドル
-    for (final corner in corners) {
-      canvas
-        ..drawCircle(corner, 6.0, handlePaint)
-        ..drawCircle(corner, 6.0, handleBorderPaint);
-    }
-
-    final rotationHandle = Offset(rect.center.dx, rect.top - 20);
-    // 上部の回転ハンドル
-    canvas
-      ..drawCircle(rotationHandle, 6.0, handlePaint)
-      ..drawCircle(rotationHandle, 6.0, handleBorderPaint)
-      ..drawLine(rect.topCenter, rotationHandle, handleBorderPaint);
-
-    final deleteHandle = Offset(rect.center.dx, rect.bottom + 20);
-    final deleteHandlePaint = Paint()
-      ..color = Colors.red
-      ..style = PaintingStyle.fill;
-
-    // 下部の削除ハンドル
-    canvas
-      ..drawCircle(deleteHandle, 6.0, deleteHandlePaint)
-      ..drawLine(rect.bottomCenter, deleteHandle, handleBorderPaint);
   }
 
   /// 指定された線(Path)と交差するかどうか

@@ -22,9 +22,6 @@ export 'src/serialization/serializers/drawable_object_serializer.dart' show Draw
 // データ変換のヘルパークラス
 export 'src/utils/flexi_sketch_data_helper.dart';
 
-// シリアライズの進捗状況を表すクラス
-export 'src/loading/image_loading_state.dart';
-
 // SketchStorageとその関連クラス
 export 'src/storage/sketch_data.dart' show SketchData, SketchMetadata;
 

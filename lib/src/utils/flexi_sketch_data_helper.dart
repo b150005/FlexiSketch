@@ -1,10 +1,11 @@
 import 'dart:ui' as ui;
+import 'dart:developer' as developer;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
 import '../config/flexi_sketch_size_config.dart';
-import '../loading/image_loading_state.dart';
 import '../objects/image_object.dart';
 import 'flexi_sketch_size_helper.dart';
 
@@ -23,30 +24,30 @@ class FlexiSketchDataHelper {
     Size? canvasSize,
   }) async {
     // 画像をデコード
-    final decodedImage = await decodeImageFromBytes(imageData);
+    final ui.Image decodedImage = await decodeImageFromBytes(imageData);
 
     // 画像の元サイズを取得
-    final imageSize = Size(
+    final Size imageSize = Size(
       decodedImage.width.toDouble(),
       decodedImage.height.toDouble(),
     );
 
     // キャンバスサイズの決定
-    final effectiveCanvasSize = canvasSize ??
+    final Size effectiveCanvasSize = canvasSize ??
         FlexiSketchSizeHelper.calculateCanvasSize(
           imageSize: imageSize,
           config: config,
         );
 
     // 画像の表示サイズを計算
-    final displaySize = FlexiSketchSizeHelper.calculateDisplaySize(
+    final Size displaySize = FlexiSketchSizeHelper.calculateDisplaySize(
       imageSize: imageSize,
       canvasSize: effectiveCanvasSize,
       config: config,
     );
 
     // 画像オブジェクトを生成
-    final imageObject = createImageObject(
+    final ImageObject imageObject = createImageObject(
       image: decodedImage,
       center: getCanvasCenter(effectiveCanvasSize),
       size: displaySize,
@@ -57,6 +58,8 @@ class FlexiSketchDataHelper {
 
   /// 画像データから FlexiSketch の初期データを生成する
   ///
+  /// FIXME: ※ HTML Renderer で使用する場合は FlexiSketchController.addImageFromBytes()を使用してください。
+  ///
   /// [imageData] 画像のバイトデータ
   /// [width] キャンバスの幅（省略時は画像サイズを使用）
   /// [height] キャンバスの高さ（省略時は画像サイズを使用）
@@ -65,66 +68,65 @@ class FlexiSketchDataHelper {
     double? width,
     double? height,
     FlexiSketchSizeConfig config = FlexiSketchSizeConfig.defaultConfig,
-    ProgressCallback? onProgress,
   }) async {
-    final controller = FlexiSketchController();
+    final FlexiSketchController controller = FlexiSketchController();
 
     try {
-      onProgress?.call(ImageLoadingState(
-        progress: 0.0,
-        phase: ImageLoadingPhase.decoding,
-      ));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      // 画像をデコード
+      final ui.Image decodedImage = await decodeImageFromBytes(imageData);
 
-      final canvasSize = width != null && height != null ? Size(width, height) : null;
-
-      // 画像オブジェクトの生成
-      final (imageObject, effectiveCanvasSize) = await createImageObjectFromBytes(
-        imageData,
-        config: config,
-        canvasSize: canvasSize,
+      // 画像の元サイズを使用（リサイズしない）
+      final Size imageSize = Size(
+        decodedImage.width.toDouble(),
+        decodedImage.height.toDouble(),
       );
 
-      onProgress?.call(ImageLoadingState(
-        progress: 0.023,
-        phase: ImageLoadingPhase.creating,
-      ));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      // キャンバスサイズの計算
+      final Size canvasSize = width != null && height != null
+          ? Size(width, height)
+          : FlexiSketchSizeHelper.calculateCanvasSize(
+              imageSize: imageSize,
+              config: config,
+            );
+
+      // 画像オブジェクトを生成（元のサイズを維持）
+      final ImageObject imageObject = createImageObject(
+        image: decodedImage,
+        center: getCanvasCenter(canvasSize),
+        size: imageSize, // 元のサイズを使用
+      );
 
       // コントローラの設定
-      controller.updateCanvasSize(effectiveCanvasSize);
+      controller.updateCanvasSize(canvasSize);
       controller.objects.add(imageObject);
 
-      onProgress?.call(ImageLoadingState(
-        progress: 0.046,
-        phase: ImageLoadingPhase.serializing,
-      ));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-
       // JSONデータを生成
-      final result = await controller.generateJsonData(
-        null, // metadata
-        (progress) async {
-          // 4.6%から100%までの範囲で進捗を通知
-          final totalProgress = 0.046 + (progress * 0.954);
-          onProgress?.call(ImageLoadingState(
-            progress: totalProgress,
-            phase: ImageLoadingPhase.serializing,
-          ));
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-        },
-      );
+      final Map<String, dynamic> result = await controller.generateJsonData(null);
 
-      onProgress?.call(ImageLoadingState(
-        progress: 1.0,
-        phase: ImageLoadingPhase.completed,
-      ));
-      // 完了 UI は表示されなくても問題ないのでコメントアウト
-      // await Future<void>.delayed(const Duration(milliseconds: 50));
+      // 画像を画面全体に表示するために必要な初期変換行列を計算
+      // ビューポートと画像のアスペクト比を計算
+      final double viewportAspect = canvasSize.width / canvasSize.height;
+      final double imageAspect = imageSize.width / imageSize.height;
+
+      // スケールを計算（20pxのパディングを考慮）
+      final double scaleX = (canvasSize.width - 40) / imageSize.width;
+      final double scaleY = (canvasSize.height - 40) / imageSize.height;
+
+      // アスペクト比を維持しながら、最適なスケールを選択
+      final double scaleFactor = imageAspect > viewportAspect ? scaleX : scaleY;
+
+      // 初期変換行列の情報をJSONに追加
+      result['content']['initialTransform'] = {
+        'scale': scaleFactor,
+        'centerX': canvasSize.width / 2,
+        'centerY': canvasSize.height / 2,
+        'imageWidth': imageSize.width,
+        'imageHeight': imageSize.height,
+      };
 
       return result;
     } catch (e) {
-      onProgress?.call(ImageLoadingState.withError(e));
+      developer.log(e.toString());
       rethrow;
     } finally {
       controller.dispose();
@@ -135,8 +137,8 @@ class FlexiSketchDataHelper {
   ///
   /// [imageData] 画像のバイトデータ
   static Future<ui.Image> decodeImageFromBytes(Uint8List imageData) async {
-    final codec = await ui.instantiateImageCodec(imageData);
-    final frame = await codec.getNextFrame();
+    final ui.Codec codec = await ui.instantiateImageCodec(imageData);
+    final ui.FrameInfo frame = await codec.getNextFrame();
     return frame.image;
   }
 
@@ -150,7 +152,7 @@ class FlexiSketchDataHelper {
     required Offset center,
     Size? size,
   }) {
-    final imageSize = size ??
+    final Size imageSize = size ??
         Size(
           image.width.toDouble(),
           image.height.toDouble(),

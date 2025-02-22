@@ -8,10 +8,10 @@ extension Matrix4Extensions on Matrix4 {
   /// [viewportSize] ビューポートのサイズ
   void setScaleAndCenter(double scaleFactor, Offset contentCenter, Size viewportSize) {
     // ビューポートの中心を計算
-    final viewportCenter = Offset(viewportSize.width / 2, viewportSize.height / 2);
+    final Offset viewportCenter = Offset(viewportSize.width / 2, viewportSize.height / 2);
 
     // コンテンツの中心をスケーリングして、ビューポートの中心との差分を計算
-    final adjustment = viewportCenter - contentCenter * scaleFactor;
+    final Offset adjustment = viewportCenter - contentCenter * scaleFactor;
 
     setIdentity();
     translate(adjustment.dx, adjustment.dy);

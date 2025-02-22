@@ -16,5 +16,4 @@ typedef SaveSketchAsData = Future<void> Function(
   BuildContext context,
   Map<String, dynamic>? jsonData,
   Uint8List? imageData,
-  double progress,
 );
