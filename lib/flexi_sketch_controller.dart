@@ -746,11 +746,10 @@ class FlexiSketchController extends ChangeNotifier {
       );
 
       // キャンバスサイズの更新（必要に応じて）
-      final Size effectiveCanvasSize = _canvasSize ??
-          FlexiSketchSizeHelper.calculateCanvasSize(
-            imageSize: imageSize,
-            config: config,
-          );
+      final Size effectiveCanvasSize = FlexiSketchSizeHelper.calculateCanvasSize(
+        imageSize: imageSize,
+        config: config,
+      );
 
       // 画像オブジェクトを生成（元のサイズを維持）
       final ImageObject imageObject = FlexiSketchDataHelper.createImageObject(
