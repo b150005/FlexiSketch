@@ -69,6 +69,15 @@ class FlexiSketchController extends ChangeNotifier {
   PathObject? _currentPath;
   PathObject? get currentPath => _currentPath;
 
+  // 直線プレビュー用の変数
+  ShapeObject? _linePreview;
+  ShapeObject? get linePreview => _linePreview;
+
+  bool _isLinePreviewActive = false;
+
+  /// 直線プレビューが表示中かどうか
+  bool get isLinePreviewActive => _isLinePreviewActive;
+
   /// 描画中の図形
   ShapeObject? _currentShape;
   ShapeObject? get currentShape => _currentShape;
@@ -288,6 +297,65 @@ class FlexiSketchController extends ChangeNotifier {
       _objects.add(_currentPath!);
       _currentPath = null;
       notifyListeners();
+    }
+  }
+
+  /// 直線プレビューを表示
+  void showLinePreview(Offset start, Offset end) {
+    if (_currentPath == null) return;
+
+    final paint = Paint()
+      ..color = Colors.grey.withValues(alpha: 0.5)
+      ..strokeWidth = _currentStrokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    _linePreview = ShapeObject(
+      startPoint: start,
+      endPoint: end,
+      shapeType: ShapeType.line,
+      paint: paint,
+    );
+
+    _isLinePreviewActive = true;
+    notifyListeners();
+  }
+
+  /// 直線プレビューを更新
+  void updateLinePreview(Offset start, Offset end) {
+    if (_linePreview != null) {
+      _linePreview!.updateShape(end);
+      notifyListeners();
+    }
+  }
+
+  /// 直線プレビューをクリア
+  void clearLinePreview() {
+    _linePreview = null;
+    _isLinePreviewActive = false;
+    notifyListeners();
+  }
+
+  /// 直線プレビューを確定（現在のパスを削除してプレビューの直線を追加）
+  void confirmLinePreview() {
+    if (_linePreview != null && _currentPath != null) {
+      // プレビューの色を現在の色に変更
+      _linePreview!.paint.color = _currentColor;
+
+      // 履歴に追加
+      _addToHistory(HistoryEntryType.draw);
+
+      // 現在のパスを削除し、直線を追加
+      _objects.add(_linePreview!);
+      _currentPath = null;
+      _linePreview = null;
+      _isLinePreviewActive = false;
+
+      notifyListeners();
+    } else {
+      // プレビューがない場合は通常の線を終了
+      endPath();
     }
   }
 

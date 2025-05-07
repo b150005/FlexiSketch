@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../flexi_sketch_controller.dart';
 import 'drawing_tool.dart';
 
-enum ShapeType { rectangle, circle }
+enum ShapeType { rectangle, circle, line }
 
 class ShapeTool implements DrawingTool {
   final ShapeType shapeType;

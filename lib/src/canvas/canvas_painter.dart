@@ -118,6 +118,11 @@ class CanvasPainter extends CustomPainter {
       controller.currentShape!.draw(canvas);
     }
 
+    // 現在の直線プレビューがあれば描画
+    if (controller.linePreview != null) {
+      controller.linePreview!.draw(canvas);
+    }
+
     // 保存した状態を復元
     canvas.restore();
   }

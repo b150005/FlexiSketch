@@ -145,15 +145,21 @@ class ShapeObject extends DrawableObject {
     final Path path = Path();
 
     // グローバル座標からローカル座標に変換
-    final rect = Rect.fromPoints(_startPoint - globalCenter, _endPoint - globalCenter);
+    final Offset localStartPoint = _startPoint - globalCenter;
+    final Offset localEndPoint = _endPoint - globalCenter;
 
     switch (shapeType) {
       case ShapeType.rectangle:
-        path.addRect(rect);
+        path.addRect(Rect.fromPoints(localStartPoint, localEndPoint));
         break;
       case ShapeType.circle:
         // 円は矩形に内接する楕円として描画
-        path.addOval(rect);
+        path.addOval(Rect.fromPoints(localStartPoint, localEndPoint));
+        break;
+      case ShapeType.line:
+        // 直線を描画 - 始点と終点を明示的に使用
+        path.moveTo(localStartPoint.dx, localStartPoint.dy);
+        path.lineTo(localEndPoint.dx, localEndPoint.dy);
         break;
       default:
         // 未知の図形タイプの場合は空のパスを返す
