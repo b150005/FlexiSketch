@@ -380,13 +380,17 @@ class FlexiSketchController extends ChangeNotifier {
       final Offset localPoint = _currentPath!.globalToLocal(point);
       _currentPath!.addPoint(localPoint);
 
-      // 変換済みのパスを使用して交差判定
-      if (_objects.any((obj) =>
+      // 変換済みのパスを取得
+      final Path eraserPath = _currentPath!.getTransformedPath();
+
+      // 消去対象のオブジェクトを検出
+      final bool hasIntersection = _objects.any((obj) =>
           // preserveImages が true の場合、 ImageObject は判定から除外
-          (!preserveImages || obj is! ImageObject) && obj.intersects(_currentPath!.getTransformedPath()))) {
+          (!preserveImages || obj is! ImageObject) && obj.intersects(eraserPath));
+
+      if (hasIntersection) {
         _addToHistory(HistoryEntryType.erase);
-        _objects.removeWhere(
-            (obj) => (!preserveImages || obj is! ImageObject) && obj.intersects(_currentPath!.getTransformedPath()));
+        _objects.removeWhere((obj) => (!preserveImages || obj is! ImageObject) && obj.intersects(eraserPath));
       }
       notifyListeners();
     }

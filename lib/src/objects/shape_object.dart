@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
 
 import '../serialization/object_serializer.dart';
 import '../serialization/serializers/shape_object_serializer.dart';
 import '../tools/shape_tool.dart';
+import '../utils/path_utils.dart';
 import 'drawable_object.dart';
 
 /// 図形オブジェクト
@@ -71,6 +72,50 @@ class ShapeObject extends DrawableObject {
   bool checkIntersection(Path other) {
     try {
       final Path transformedPath = _createPath().transform(transform.storage);
+
+      // 直線の場合、交差判定を特別に処理
+      if (shapeType == ShapeType.line) {
+        // ローカル座標系での始点と終点
+        final Offset localStartPoint = _startPoint - globalCenter;
+        final Offset localEndPoint = _endPoint - globalCenter;
+
+        // 変換を適用した始点と終点を取得
+        final Offset transformedStart = MatrixUtils.transformPoint(transform, localStartPoint);
+        final Offset transformedEnd = MatrixUtils.transformPoint(transform, localEndPoint);
+
+        // 直線のセグメントをサンプリングして交差判定
+        final int samples = 20; // サンプリング数
+        bool intersects = false;
+
+        for (int i = 0; i <= samples; i++) {
+          final double t = i / samples;
+          final Offset point = Offset.lerp(transformedStart, transformedEnd, t)!;
+
+          // 点を含むパスを作成（線幅を考慮したサイズで）
+          final Path pointPath = Path()
+            ..addOval(Rect.fromCenter(
+              center: point,
+              width: paint.strokeWidth,
+              height: paint.strokeWidth,
+            ));
+
+          // 交差判定
+          final Path intersection = Path.combine(
+            PathOperation.intersect,
+            pointPath,
+            other,
+          );
+
+          if (!intersection.getBounds().isEmpty) {
+            intersects = true;
+            break;
+          }
+        }
+
+        return intersects;
+      }
+
+      // 通常の図形の場合（従来の処理）
       final Path intersectionPath = Path.combine(
         PathOperation.intersect,
         transformedPath,
@@ -86,6 +131,17 @@ class ShapeObject extends DrawableObject {
   @override
   bool checkContainsPoint(Offset localPoint) {
     try {
+      // 直線の場合、点が線上にあるかを判定
+      if (shapeType == ShapeType.line) {
+        // ローカル座標系での始点と終点
+        final Offset localStartPoint = _startPoint - globalCenter;
+        final Offset localEndPoint = _endPoint - globalCenter;
+
+        // 線分と点の距離を計算
+        return PathUtils.distanceToLine(localPoint, localStartPoint, localEndPoint) <= paint.strokeWidth / 2;
+      }
+
+      // 通常の図形の場合（従来の処理）
       final Path testPath = Path()
         ..addRect(Rect.fromCenter(
           center: localPoint,

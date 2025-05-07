@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../flexi_sketch_controller.dart';
@@ -12,8 +14,11 @@ class PenTool implements DrawingTool {
   Offset _startPoint = Offset.zero;
   Offset _lastPoint = Offset.zero;
 
+  /// 前回の方向ベクトル
+  Offset? _prevDirection;
+
   // プレビュー表示までの待機時間（1秒）
-  static const Duration _previewDelay = Duration(milliseconds: 1000);
+  static const Duration _previewDelay = Duration(milliseconds: 1500);
 
   // プレビュー消去の距離の閾値（10ピクセル）
   static const double _previewCancelDistance = 10.0;
@@ -27,6 +32,7 @@ class PenTool implements DrawingTool {
     _isPreviewActive = false;
     _isTimerActive = false;
     _cancelTimer();
+    _prevDirection = null;
 
     // 開始点を保存
     _startPoint = point;
@@ -43,6 +49,14 @@ class PenTool implements DrawingTool {
 
     // 移動距離を計算
     final double distance = (point - _lastPoint).distance;
+
+    // 始点からの累積移動距離も計算（プレビュー中に重要）
+    final double distanceFromStart = (point - _startPoint).distance;
+
+    // 方向ベクトルを計算
+    final Offset direction = point - _lastPoint;
+    final double directionChange = _calculateDirectionChange(direction);
+
     _lastPoint = point;
 
     // タイマーが動作中の場合
@@ -55,8 +69,11 @@ class PenTool implements DrawingTool {
     }
     // プレビュー表示中の場合
     else if (_isPreviewActive) {
-      // 一定距離以上移動したらプレビューを消去して新しいタイマーを開始
-      if (distance > _previewCancelDistance) {
+      // 一定距離以上移動したり、方向が大きく変わったりした場合にプレビューを消去して新しいタイマーを開始
+      if (distance > _previewCancelDistance ||
+          directionChange > 0.5 || // 方向変化の閾値（ラジアン）
+          distanceFromStart > 50) {
+        // 始点からの最大距離（画面サイズや用途に応じて調整）
         _isPreviewActive = false;
         controller.clearLinePreview();
         _startPreviewTimer(controller);
@@ -111,5 +128,29 @@ class PenTool implements DrawingTool {
     _previewTimer?.cancel();
     _previewTimer = null;
     _isTimerActive = false;
+  }
+
+  /// 方向の変化量を計算する
+  double _calculateDirectionChange(Offset newDirection) {
+    if (_prevDirection == null) {
+      _prevDirection = newDirection;
+      return 0.0;
+    }
+
+    // 方向ベクトルが非常に小さい場合は変化なしとする
+    if (newDirection.distance < 0.001 || _prevDirection!.distance < 0.001) {
+      return 0.0;
+    }
+
+    // 正規化された方向ベクトル間の角度を計算
+    final double dotProduct = (newDirection.dx * _prevDirection!.dx + newDirection.dy * _prevDirection!.dy) /
+        (newDirection.distance * _prevDirection!.distance);
+
+    // 内積を[-1, 1]の範囲にクランプし、角度を計算
+    final double clampedDot = dotProduct.clamp(-1.0, 1.0);
+    final double angle = math.acos(clampedDot);
+
+    _prevDirection = newDirection;
+    return angle;
   }
 }

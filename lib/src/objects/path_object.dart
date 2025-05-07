@@ -50,18 +50,51 @@ class PathObject extends DrawableObject {
   @override
   bool checkIntersection(Path other) {
     try {
+      // 現在の変換を適用したパスを取得
       final Path transformedPath = _path.transform(transform.storage);
-      final Path intersectionPath = Path.combine(
-        PathOperation.intersect,
-        transformedPath,
-        other,
-      );
 
-      double totalLength = 0;
-      for (PathMetric metric in intersectionPath.computeMetrics()) {
-        totalLength += metric.length;
+      // 線のストロークを考慮したパスを作成するため、線幅を考慮した交差判定
+      final double strokeWidth = paint.strokeWidth;
+
+      // 交差判定をより厳密に行う
+      bool hasIntersection = false;
+
+      // パスのメトリクスを取得して各サブパスをチェック
+      for (final PathMetric metric in transformedPath.computeMetrics()) {
+        // サブパスの各点を調査
+        for (double distance = 0.0; distance <= metric.length; distance += 5.0) {
+          // サブパスの特定の距離における接線位置を取得
+          final Tangent? tangent = metric.getTangentForOffset(distance);
+          if (tangent == null) continue;
+
+          // 接線位置の点を取得
+          final Offset point = tangent.position;
+
+          // 点を含むパスを作成（線幅を考慮したサイズで）
+          final Path pointPath = Path()
+            ..addOval(Rect.fromCenter(
+              center: point,
+              width: strokeWidth,
+              height: strokeWidth,
+            ));
+
+          // 交差判定
+          final Path intersection = Path.combine(
+            PathOperation.intersect,
+            pointPath,
+            other,
+          );
+
+          if (!intersection.getBounds().isEmpty) {
+            hasIntersection = true;
+            break;
+          }
+        }
+
+        if (hasIntersection) break;
       }
-      return totalLength > 1.0;
+
+      return hasIntersection;
     } catch (e) {
       return true;
     }
