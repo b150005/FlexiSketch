@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'dart:developer' as developer;
@@ -35,13 +36,20 @@ class FlexiSketchController extends ChangeNotifier {
   /// `true` の場合、 `ImageObject` は消しゴムによって削除されません。
   final bool preserveImages;
 
+  /// 色・線の太さ変更時のコールバック
+  final void Function({required Color color, required double strokeWidth})? onChangeProps;
+
   /// コンストラクタ
   ///
   /// [preserveImages] 画像オブジェクトを消しゴムの対象外とするかどうか（デフォルト: `false`)
   FlexiSketchController({
     this.context,
     this.preserveImages = false,
-  });
+    this.onChangeProps,
+    Color color = Colors.black,
+    double strokeWidth = 5.0,
+  })  : _currentColor = color,
+        _currentStrokeWidth = strokeWidth;
 
   /// 選択中の描画ツール
   DrawingTool? _currentTool;
@@ -57,13 +65,43 @@ class FlexiSketchController extends ChangeNotifier {
     _objects.addAll(value);
   }
 
+  /// 線の色を変更するためのタイマー
+  Timer? _colorDebounceTimer;
+
   /// 描画色
-  Color _currentColor = Colors.black;
+  Color _currentColor;
   Color get currentColor => _currentColor;
+  set currentColor(Color color) {
+    _currentColor = color;
+
+    // 既存のタイマーがあれば解除
+    _colorDebounceTimer?.cancel();
+
+    if (onChangeProps != null) {
+      _colorDebounceTimer = Timer(const Duration(milliseconds: 2000), () {
+        onChangeProps!(color: _currentColor, strokeWidth: _currentStrokeWidth);
+      });
+    }
+  }
+
+  /// 線の太さを変更するためのタイマー
+  Timer? _strokeWidthDebounceTimer;
 
   /// 線の太さ
-  double _currentStrokeWidth = 8.0;
+  double _currentStrokeWidth;
   double get currentStrokeWidth => _currentStrokeWidth;
+  set currentStrokeWidth(double strokeWidth) {
+    _currentStrokeWidth = strokeWidth;
+
+    // 既存のタイマーがあれば解除
+    _strokeWidthDebounceTimer?.cancel();
+
+    if (onChangeProps != null) {
+      _strokeWidthDebounceTimer = Timer(const Duration(milliseconds: 2000), () {
+        onChangeProps!(color: _currentColor, strokeWidth: _currentStrokeWidth);
+      });
+    }
+  }
 
   /// 描画中のパス(線)
   PathObject? _currentPath;
@@ -152,13 +190,13 @@ class FlexiSketchController extends ChangeNotifier {
     }
 
     // 現在の描画色を更新（新規オブジェクト用）
-    _currentColor = color;
+    currentColor = color;
     notifyListeners();
   }
 
   /// 線の太さを設定する
   void setStrokeWidth(double width) {
-    _currentStrokeWidth = width;
+    currentStrokeWidth = width;
     notifyListeners();
   }
 
