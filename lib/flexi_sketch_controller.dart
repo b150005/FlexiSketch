@@ -31,9 +31,9 @@ class FlexiSketchController extends ChangeNotifier {
   /// コンテキスト
   final BuildContext? context;
 
-  /// 画像オブジェクトを消しゴムの対象外とするかどうか
+  /// 画像オブジェクトを保護するかどうか
   ///
-  /// `true` の場合、 `ImageObject` は消しゴムによって削除されません。
+  /// `true` の場合、 `ImageObject` は消しゴムによって削除されず、移動もできません。
   final bool preserveImages;
 
   /// 色・線の太さ変更時のコールバック
@@ -41,7 +41,7 @@ class FlexiSketchController extends ChangeNotifier {
 
   /// コンストラクタ
   ///
-  /// [preserveImages] 画像オブジェクトを消しゴムの対象外とするかどうか（デフォルト: `false`)
+  /// [preserveImages] 画像を保護するかどうか（デフォルト: `false`)
   FlexiSketchController({
     this.context,
     this.preserveImages = false,
@@ -646,6 +646,10 @@ class FlexiSketchController extends ChangeNotifier {
   /// 選択中のオブジェクトを移動する
   void moveSelectedObject(Offset delta) {
     if (_selectedObject != null) {
+      if (_selectedObject is ImageObject && preserveImages) {
+        return;
+      }
+
       _selectedObject!.translate(delta);
       notifyListeners();
     }
